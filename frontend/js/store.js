@@ -186,6 +186,17 @@ window.Store = (() => {
       return usuario;
     },
 
+    async loginGoogle(credential) {
+      const data = await window.API.post("/api/auth/google", { credential });
+      window.API.setToken(data.token);
+      const usuario = { ...data.usuario, demo: false };
+      atualizar((s) => {
+        s.usuario = usuario;
+        return s;
+      });
+      return usuario;
+    },
+
     async cadastroApi(nome, email, senha) {
       const data = await window.API.post("/api/auth/cadastro", { nome, email, senha });
       window.API.setToken(data.token);

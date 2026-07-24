@@ -6,6 +6,7 @@ import br.com.barberini.model.Papel;
 import br.com.barberini.model.Usuario;
 import br.com.barberini.repository.UsuarioRepository;
 import br.com.barberini.security.JwtService;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -13,6 +14,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.UUID;
 
 @Service
 public class AuthService {
@@ -20,11 +22,18 @@ public class AuthService {
     private final UsuarioRepository usuarios;
     private final PasswordEncoder encoder;
     private final JwtService jwt;
+    private final GoogleTokenService googleTokens;
 
-    public AuthService(UsuarioRepository usuarios, PasswordEncoder encoder, JwtService jwt) {
+    public AuthService(
+            UsuarioRepository usuarios,
+            PasswordEncoder encoder,
+            JwtService jwt,
+            GoogleTokenService googleTokens
+    ) {
         this.usuarios = usuarios;
         this.encoder = encoder;
         this.jwt = jwt;
+        this.googleTokens = googleTokens;
     }
 
     public Map<String, Object> cadastrar(CadastroRequest req) {
@@ -43,6 +52,29 @@ public class AuthService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "E-mail ou senha inválidos"));
         if (!encoder.matches(req.senha(), u.getSenhaHash())) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "E-mail ou senha inválidos");
+        }
+        return respostaAuth(u);
+    }
+
+    public Map<String, Object> loginGoogle(String credential) {
+        GoogleIdToken.Payload payload = googleTokens.verificar(credential);
+        String email = payload.getEmail().trim().toLowerCase();
+        String nome = payload.get("name") != null
+                ? String.valueOf(payload.get("name")).trim()
+                : email.split("@")[0];
+        if (nome.isBlank()) {
+            nome = "Cliente";
+        }
+
+        Usuario u = usuarios.findByEmailIgnoreCase(email).orElse(null);
+        if (u == null) {
+            // Senha aleatória — conta só entra via Google
+            u = usuarios.save(new Usuario(
+                    email,
+                    nome,
+                    encoder.encode(UUID.randomUUID().toString()),
+                    Papel.CLIENTE
+            ));
         }
         return respostaAuth(u);
     }

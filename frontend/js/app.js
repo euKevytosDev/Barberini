@@ -25,6 +25,10 @@
   let bloqueioCalCursor = new Date();
   let bloqueiosDoDia = []; // cache da data selecionada
 
+  const GOOGLE_CLIENT_ID =
+    "868389533637-d3l4a0mrnnbf7i1h34cd0mts996sb6pc.apps.googleusercontent.com";
+  let googlePronto = false;
+
   const $ = (sel, root = document) => root.querySelector(sel);
   const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 
@@ -127,6 +131,7 @@
     show($("#tela-login"));
     hide($("#tela-app"));
     fecharWizard();
+    initGoogleSignIn();
   }
 
   function atualizarHeaderUsuario() {
@@ -623,7 +628,7 @@
 
   async function confirmarAgendamento() {
     if (!Store.temAuthReal()) {
-      toast("Faça login com e-mail e senha para confirmar o agendamento");
+      toast("Faça login (e-mail ou Google) para confirmar o agendamento");
       return;
     }
 
@@ -1111,6 +1116,59 @@
     }
   }
 
+  /* ---------- Google Sign-In ---------- */
+
+  async function handleGoogleCredential(response) {
+    try {
+      if (!response?.credential) {
+        toast("Login Google cancelado");
+        return;
+      }
+      await Store.loginGoogle(response.credential);
+      toast("Bem-vindo!");
+      await entrarApp();
+    } catch (err) {
+      toast(err.message || "Erro no login Google");
+    }
+  }
+
+  function montarBotaoGoogle() {
+    const el = $("#google-btn");
+    if (!el || !window.google?.accounts?.id) return;
+    el.innerHTML = "";
+    const largura = Math.min(360, Math.max(240, el.parentElement?.clientWidth || 320));
+    google.accounts.id.renderButton(el, {
+      theme: "outline",
+      size: "large",
+      width: largura,
+      text: "continue_with",
+      shape: "rectangular",
+      logo_alignment: "left",
+      locale: "pt-BR",
+    });
+  }
+
+  function initGoogleSignIn(tentativas = 0) {
+    if (googlePronto) {
+      montarBotaoGoogle();
+      return;
+    }
+    if (!window.google?.accounts?.id) {
+      if (tentativas < 40) {
+        setTimeout(() => initGoogleSignIn(tentativas + 1), 150);
+      }
+      return;
+    }
+    google.accounts.id.initialize({
+      client_id: GOOGLE_CLIENT_ID,
+      callback: handleGoogleCredential,
+      auto_select: false,
+      cancel_on_tap_outside: true,
+    });
+    googlePronto = true;
+    montarBotaoGoogle();
+  }
+
   /* ---------- boot ---------- */
 
   function bind() {
@@ -1257,6 +1315,8 @@
     } else {
       irParaLogin();
     }
+
+    initGoogleSignIn();
 
     const splash = $("#splash");
     if (splash) {

@@ -1019,6 +1019,41 @@ body {
   margin: 0 0 16px;
 }
 
+.google-auth {
+  width: 100%;
+  max-width: 360px;
+  margin: 0 auto 8px;
+}
+
+.google-btn {
+  display: flex;
+  justify-content: center;
+  min-height: 44px;
+}
+
+.auth-divisor {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 16px 0 4px;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.auth-divisor::before,
+.auth-divisor::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.auth-divisor span {
+  flex: 0 0 auto;
+}
+
 /* ---------- perfil papel ---------- */
 .perfil-papel {
   display: inline-block;

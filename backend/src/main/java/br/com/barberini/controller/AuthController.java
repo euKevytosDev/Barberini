@@ -1,6 +1,7 @@
 package br.com.barberini.controller;
 
 import br.com.barberini.dto.CadastroRequest;
+import br.com.barberini.dto.GoogleLoginRequest;
 import br.com.barberini.dto.LoginRequest;
 import br.com.barberini.service.AuthService;
 import jakarta.validation.Valid;
@@ -26,5 +27,10 @@ public class AuthController {
     @PostMapping("/login")
     public Map<String, Object> login(@Valid @RequestBody LoginRequest request) {
         return authService.login(request);
+    }
+
+    @PostMapping("/google")
+    public Map<String, Object> loginGoogle(@Valid @RequestBody GoogleLoginRequest request) {
+        return authService.loginGoogle(request.credential());
     }
 }

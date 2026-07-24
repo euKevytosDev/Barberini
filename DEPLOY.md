@@ -42,6 +42,17 @@ Free do Render **dorme** após ~15 min sem uso — a 1ª request pode demorar ~3
 - E-mail: `dono@barberini.com`  
 - Senha: `dono123`
 
+## Login com Google
+
+Client ID (Web): `868389533637-d3l4a0mrnnbf7i1h34cd0mts996sb6pc.apps.googleusercontent.com`
+
+No [Google Cloud Console](https://console.cloud.google.com/apis/credentials) → OAuth Client → **Authorized JavaScript origins**:
+
+- `https://eukevytosdev.github.io`
+- `http://localhost:5173`
+
+No Render, env `GOOGLE_CLIENT_ID` já está no `render.yaml` (mesmo valor). Se o serviço já existia, adicione manualmente no dashboard e faça redeploy.
+
 ## Local
 
 - Front: `python3 -m http.server 5173` em `frontend/` → API `localhost:8080`  

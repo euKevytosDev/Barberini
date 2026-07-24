@@ -38,6 +38,11 @@
 
       <h2 id="auth-titulo" class="auth-titulo">Entrar</h2>
 
+      <div class="google-auth">
+        <div id="google-btn" class="google-btn"></div>
+        <p class="auth-divisor"><span>ou</span></p>
+      </div>
+
       <div id="bloco-login">
         <form id="form-login" class="login-acoes">
           <label>
@@ -273,7 +278,7 @@
           </header>
           <div class="passo-corpo">
             <div id="conf-aviso-auth" class="aviso-auth oculto">
-              Faça login com e-mail e senha para confirmar o agendamento no servidor.
+              Faça login (e-mail ou Google) para confirmar o agendamento no servidor.
             </div>
             <div class="conf-barra">
               <div>
@@ -334,6 +339,7 @@
     </section>
   </div>
 
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
   <script src="js/data.js"></script>
   <script src="js/api.js"></script>
   <script src="js/store.js"></script>

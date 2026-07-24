@@ -22,3 +22,5 @@ services:
         value: dono@barberini.com
       - key: APP_SEED_DONO_SENHA
         value: dono123
+      - key: GOOGLE_CLIENT_ID
+        value: 868389533637-d3l4a0mrnnbf7i1h34cd0mts996sb6pc.apps.googleusercontent.com

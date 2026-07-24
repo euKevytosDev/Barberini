@@ -24,7 +24,7 @@
   </div>
 
   <div class="app-shell">
-    <!-- LOGIN -->
+    <!-- LOGIN / CADASTRO -->
     <section id="tela-login" class="tela-login">
       <div class="login-topo">
         <span>Saiba mais</span>
@@ -35,19 +35,45 @@
         <h1 class="login-titulo">BARBERINI</h1>
         <p class="login-subtitulo">Barbearia</p>
       </div>
-      <form id="form-login" class="login-acoes">
-        <label>
-          Seu nome
-          <input type="text" id="login-nome" placeholder="Ex: Raian Kevin" maxlength="80" required autocomplete="name" />
-        </label>
-        <label>
-          E-mail (opcional)
-          <input type="email" id="login-email" placeholder="voce@email.com" autocomplete="email" />
-        </label>
-        <button type="submit" class="btn-login-principal">Entrar na Barberini</button>
-        <button type="button" class="btn-login-ghost" id="btn-login-demo">Entrar como demonstração</button>
-      </form>
-      <p class="login-rodape">Agendamento pelo navegador — sem instalar app</p>
+
+      <h2 id="auth-titulo" class="auth-titulo">Entrar</h2>
+
+      <div id="bloco-login">
+        <form id="form-login" class="login-acoes">
+          <label>
+            E-mail
+            <input type="email" id="login-email" placeholder="voce@email.com" required autocomplete="email" />
+          </label>
+          <label>
+            Senha
+            <input type="password" id="login-senha" placeholder="Sua senha" required autocomplete="current-password" minlength="4" />
+          </label>
+          <button type="submit" class="btn-login-principal">Entrar na Barberini</button>
+          <button type="button" class="btn-login-ghost" id="btn-auth-cadastro">Criar conta</button>
+          <button type="button" class="btn-login-ghost" id="btn-login-demo">Entrar como demonstração</button>
+        </form>
+      </div>
+
+      <div id="bloco-cadastro" class="oculto">
+        <form id="form-cadastro" class="login-acoes">
+          <label>
+            Seu nome
+            <input type="text" id="cad-nome" placeholder="Ex: Raian Kevin" maxlength="80" required autocomplete="name" />
+          </label>
+          <label>
+            E-mail
+            <input type="email" id="cad-email" placeholder="voce@email.com" required autocomplete="email" />
+          </label>
+          <label>
+            Senha
+            <input type="password" id="cad-senha" placeholder="Mínimo 4 caracteres" required autocomplete="new-password" minlength="4" />
+          </label>
+          <button type="submit" class="btn-login-principal">Criar conta</button>
+          <button type="button" class="btn-login-ghost" id="btn-auth-login">Já tenho conta</button>
+        </form>
+      </div>
+
+      <p class="login-rodape">Agendamento pelo navegador — sync na confirmação</p>
     </section>
 
     <!-- APP -->
@@ -79,6 +105,7 @@
       <div class="aba-conteudo" id="aba-perfil">
         <div class="perfil-box">
           <div class="perfil-avatar-grande" id="perfil-iniciais">CL</div>
+          <span id="perfil-papel" class="perfil-papel">Cliente</span>
           <h3 id="perfil-nome">Cliente</h3>
           <p class="email" id="perfil-email">—</p>
           <div class="perfil-stats">
@@ -91,9 +118,21 @@
       <!-- ABA OPÇÕES -->
       <div class="aba-conteudo" id="aba-opcoes">
         <div class="opcoes-lista">
+          <button type="button" class="opcao-item oculto" id="btn-painel-opcoes">📊 Painel do dono</button>
           <button type="button" class="opcao-item" id="btn-relatar">🐛 Relatar um problema</button>
           <button type="button" class="opcao-item perigo" id="btn-sair">↩ Sair</button>
         </div>
+      </div>
+
+      <!-- ABA PAINEL (DONO) -->
+      <div class="aba-conteudo" id="aba-painel">
+        <nav class="painel-nav" aria-label="Seções do painel">
+          <button type="button" class="painel-nav-btn ativo" data-secao="agendamentos">Agenda</button>
+          <button type="button" class="painel-nav-btn" data-secao="barbeiros">Barbeiros</button>
+          <button type="button" class="painel-nav-btn" data-secao="servicos">Serviços</button>
+          <button type="button" class="painel-nav-btn" data-secao="bloqueios">Bloqueios</button>
+        </nav>
+        <div id="painel-conteudo" class="painel-conteudo"></div>
       </div>
 
       <button type="button" class="btn-fab-agendar" id="btn-agendar">+ AGENDAR</button>
@@ -107,6 +146,10 @@
           <span class="tab-ico">👤</span>
           Perfil
         </button>
+        <button type="button" class="tab oculto" data-tab="painel" id="tab-painel">
+          <span class="tab-ico">📊</span>
+          Painel
+        </button>
         <button type="button" class="tab" data-tab="opcoes">
           <span class="tab-ico">⚙</span>
           Opções
@@ -115,8 +158,47 @@
 
       <!-- WIZARD AGENDAR -->
       <div id="wizard" class="wizard oculto">
+        <!-- PASSO ESCOLHA -->
+        <div class="passo ativo" data-passo="escolha">
+          <header class="wizard-header">
+            <div>
+              <h2>Como deseja agendar?</h2>
+              <p>BARBERINI</p>
+            </div>
+            <button type="button" class="btn-x btn-fechar-wizard" aria-label="Fechar">×</button>
+          </header>
+          <div class="passo-corpo escolha-corpo">
+            <p class="escolha-dica">Escolha por onde começar o agendamento</p>
+            <button type="button" class="card-escolha" data-path="servico">
+              <span class="card-escolha-ico">✂️</span>
+              <strong>Escolher serviço</strong>
+              <span>Serviço → profissional → data/hora</span>
+            </button>
+            <button type="button" class="card-escolha" data-path="profissional">
+              <span class="card-escolha-ico">💈</span>
+              <strong>Escolher profissional</strong>
+              <span>Barbeiro → serviço → data/hora</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- PASSO BARBEIRO (path B) -->
+        <div class="passo" data-passo="barbeiro">
+          <header class="wizard-header">
+            <div>
+              <h2>Escolher Profissional</h2>
+              <p>BARBERINI</p>
+            </div>
+            <button type="button" class="btn-x btn-fechar-wizard" aria-label="Fechar">×</button>
+          </header>
+          <div class="passo-corpo">
+            <p class="passo-subtitulo">Com qual barbeiro você prefere?</p>
+            <div id="lista-barbeiro-pick" class="lista-barbeiro-pick"></div>
+          </div>
+        </div>
+
         <!-- PASSO SERVIÇOS -->
-        <div class="passo ativo" data-passo="servicos">
+        <div class="passo" data-passo="servicos">
           <header class="wizard-header">
             <div>
               <h2>Escolher Serviços</h2>
@@ -125,6 +207,13 @@
             <button type="button" class="btn-x btn-fechar-wizard" aria-label="Fechar">×</button>
           </header>
           <div class="passo-corpo">
+            <div id="aviso-offline" class="aviso-offline oculto">
+              Catálogo offline — usando cache local
+            </div>
+            <div id="chip-barbeiro-wizard" class="chip-barbeiro-wizard oculto">
+              <div class="avatar" id="chip-barbeiro-iniciais">?</div>
+              <span id="chip-barbeiro-nome">—</span>
+            </div>
             <div class="filtro-bar">
               <button type="button" class="pill-cat">CABELO +</button>
             </div>
@@ -134,17 +223,13 @@
             </div>
             <div id="lista-servicos"></div>
           </div>
-          <footer class="passo-footer">
-            <button type="button" class="btn btn-outline" id="btn-servicos-voltar">Voltar</button>
-            <button type="button" class="btn btn-solid" id="btn-servicos-proximo" disabled>Próximo</button>
-          </footer>
         </div>
 
-        <!-- PASSO PROFISSIONAL -->
+        <!-- PASSO PROFISSIONAL / DATA / HORA -->
         <div class="passo" data-passo="profissional">
           <header class="wizard-header">
             <div>
-              <h2>Escolher Profissional</h2>
+              <h2>Data e Horário</h2>
               <p>BARBERINI</p>
             </div>
             <button type="button" class="btn-x btn-fechar-wizard" aria-label="Fechar">×</button>
@@ -169,12 +254,12 @@
               <button type="button" class="btn-remover-chip" id="btn-remover-servico" aria-label="Remover serviço">×</button>
             </div>
 
+            <div id="chip-barbeiro-prof" class="chip-barbeiro-wizard oculto">
+              <strong id="chip-barbeiro-prof-nome">—</strong>
+            </div>
+
             <div id="lista-barbeiros"></div>
           </div>
-          <footer class="passo-footer">
-            <button type="button" class="btn btn-outline" id="btn-prof-voltar">Voltar</button>
-            <button type="button" class="btn btn-solid" id="btn-prof-proximo" disabled>Próximo</button>
-          </footer>
         </div>
 
         <!-- PASSO CONFIRMAR -->
@@ -187,6 +272,9 @@
             <button type="button" class="btn-x btn-fechar-wizard" aria-label="Fechar">×</button>
           </header>
           <div class="passo-corpo">
+            <div id="conf-aviso-auth" class="aviso-auth oculto">
+              Faça login com e-mail e senha para confirmar o agendamento no servidor.
+            </div>
             <div class="conf-barra">
               <div>
                 <small>Data</small>
@@ -214,16 +302,40 @@
               <p id="conf-politica"></p>
             </div>
           </div>
-          <footer class="passo-footer">
-            <button type="button" class="btn btn-outline" id="btn-conf-cancelar">Cancelar</button>
-            <button type="button" class="btn btn-solid" id="btn-conf-agendar">Agendar</button>
-          </footer>
         </div>
+
+        <!-- PASSO SUCESSO -->
+        <div class="passo" data-passo="sucesso">
+          <header class="wizard-header">
+            <div>
+              <h2 id="succ-titulo">Agendamento confirmado!</h2>
+              <p>BARBERINI</p>
+            </div>
+            <button type="button" class="btn-x btn-fechar-wizard" aria-label="Fechar">×</button>
+          </header>
+          <div class="passo-corpo sucesso-corpo">
+            <div class="sucesso-ico">✓</div>
+            <p id="succ-detalhe" class="sucesso-detalhe"></p>
+            <div class="sucesso-acoes">
+              <a id="btn-google-cal" class="btn btn-outline btn-cal" href="#" target="_blank" rel="noopener">
+                Abrir no Google Agenda
+              </a>
+              <button type="button" class="btn btn-solid" id="btn-succ-agenda">Ver na minha agenda</button>
+            </div>
+          </div>
+        </div>
+
+        <footer class="passo-footer" id="wizard-footer">
+          <button type="button" class="btn btn-outline" id="btn-wizard-voltar">Voltar</button>
+          <button type="button" class="btn btn-solid oculto" id="btn-wizard-proximo" disabled>Próximo</button>
+          <button type="button" class="btn btn-solid oculto" id="btn-wizard-agendar">Agendar</button>
+        </footer>
       </div>
     </section>
   </div>
 
   <script src="js/data.js"></script>
+  <script src="js/api.js"></script>
   <script src="js/store.js"></script>
   <script src="js/app.js"></script>
 </body>

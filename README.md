@@ -2,7 +2,8 @@
 
 App web mobile-first de agendamento — mesma ideia do [Pelada Oficial](https://github.com/euKevytosDev/pelada-oficial): roda no navegador com cara de app de celular.
 
-**Site (GitHub Pages):** https://eukevytosdev.github.io/Barberini/
+**Site (GitHub Pages):** https://eukevytosdev.github.io/Barberini/  
+**API (Render):** https://barberini-api.onrender.com — ver [DEPLOY.md](DEPLOY.md)
 
 Frontend conectado ao backend Spring Boot (API REST). O rascunho do agendamento fica no `localStorage`; **só na confirmação final** o horário é enviado ao servidor.
 

@@ -1,4 +1,4 @@
-/* API Barberini — localhost no IntelliJ, Pages em produção */
+/* API Barberini — local IntelliJ / produção Render */
 
 window.API = (() => {
   const isLocal =
@@ -6,9 +6,12 @@ window.API = (() => {
     location.hostname === "127.0.0.1" ||
     location.protocol === "file:";
 
+  /** Produção: GitHub Pages → API no Render */
+  const API_BASE_PROD = "https://barberini-api.onrender.com";
+
   const BASE = isLocal
     ? "http://localhost:8080"
-    : (localStorage.getItem("barberini_api_url") || "http://localhost:8080");
+    : localStorage.getItem("barberini_api_url") || API_BASE_PROD;
 
   function token() {
     return localStorage.getItem("barberini_token") || "";
@@ -26,7 +29,10 @@ window.API = (() => {
     try {
       res = await fetch(BASE + path, { ...options, headers });
     } catch (e) {
-      const err = new Error("Servidor offline. Suba o backend no IntelliJ (porta 8080).");
+      const msg = isLocal
+        ? "Servidor offline. Suba o backend no IntelliJ (porta 8080)."
+        : "API offline (Render free pode estar acordando — aguarde ~30s e tente de novo).";
+      const err = new Error(msg);
       err.offline = true;
       throw err;
     }

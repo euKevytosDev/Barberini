@@ -1513,3 +1513,171 @@ body {
 #wizard-footer {
   flex-shrink: 0;
 }
+
+/* ---------- Desktop / tablet responsivo ---------- */
+@media (min-width: 720px) {
+  body {
+    background:
+      radial-gradient(ellipse at top, #2a2a2a 0%, #111 55%);
+    padding: 28px 20px;
+    align-items: flex-start;
+  }
+
+  .app-shell {
+    max-width: 980px;
+    width: 100%;
+    min-height: calc(100dvh - 56px);
+    max-height: calc(100dvh - 56px);
+    border-radius: 18px;
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.08), 0 24px 60px rgba(0,0,0,0.45);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .tela-app {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .aba-conteudo {
+    flex: 1;
+    min-height: 0;
+  }
+
+  .tela-login {
+    max-width: 420px;
+    margin: 0 auto;
+    width: 100%;
+    justify-content: center;
+    background: transparent;
+  }
+
+  .login-marca {
+    padding: 20px 0 32px;
+  }
+
+  .splash {
+    border-radius: 0;
+  }
+
+  /* Painel do dono em grade no PC */
+  .painel-nav {
+    justify-content: flex-start;
+    padding: 14px 20px;
+    gap: 8px;
+  }
+
+  .painel-conteudo {
+    padding: 20px 24px 28px;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+    overflow: auto;
+  }
+
+  .painel-conteudo:has(.card-painel-ag),
+  .painel-conteudo:has(.card-painel-item) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .painel-conteudo > .btn-painel-add,
+  .painel-conteudo > .form-painel,
+  .painel-conteudo > .bloqueio-dica,
+  .painel-conteudo > .btn-voltar-barbeiro,
+  .painel-conteudo > .bloqueio-header-barb,
+  .painel-conteudo > .bloqueio-cal,
+  .painel-conteudo > .bloqueio-legenda,
+  .painel-conteudo > .bloqueio-grade,
+  .painel-conteudo > .lista-barbeiros-bloqueio,
+  .painel-conteudo > .lista-vazia,
+  .painel-conteudo > .carregando-slots {
+    grid-column: 1 / -1;
+  }
+
+  .lista-barbeiros-bloqueio {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .grade-slots,
+  .bloqueio-grade {
+    grid-template-columns: repeat(6, 1fr);
+    max-height: none;
+  }
+
+  .bloqueio-grade {
+    padding: 16px;
+  }
+
+  .card-barbeiro .grade-slots {
+    max-height: 240px;
+  }
+
+  /* Agenda / cards mais largos */
+  #lista-agenda {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+    padding: 20px 24px;
+  }
+
+  .agenda-vazia {
+    margin: 28px 24px;
+    min-height: 320px;
+  }
+
+  .perfil-box,
+  .opcoes-lista {
+    max-width: 480px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .wizard {
+    border-radius: 0 0 18px 18px;
+  }
+
+  .passo-corpo {
+    max-width: 720px;
+    margin: 0 auto;
+    width: 100%;
+  }
+
+  #lista-servicos {
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .btn-fab-agendar {
+    bottom: calc(var(--nav-h) + 20px + var(--safe-bottom));
+    padding: 15px 48px;
+    font-size: 0.95rem;
+  }
+
+  .bottom-nav {
+    border-radius: 0 0 18px 18px;
+  }
+}
+
+@media (min-width: 1100px) {
+  .app-shell {
+    max-width: 1100px;
+  }
+
+  .painel-conteudo:has(.card-painel-ag) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .lista-barbeiros-bloqueio {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .grade-slots,
+  .bloqueio-grade {
+    grid-template-columns: repeat(8, 1fr);
+  }
+}
+

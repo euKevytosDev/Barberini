@@ -1,0 +1,7 @@
+target/
+.idea/*
+!.idea/runConfigurations/
+!.idea/runConfigurations/**
+*.iml
+data/
+.DS_Store

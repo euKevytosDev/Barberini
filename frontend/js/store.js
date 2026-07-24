@@ -332,6 +332,7 @@ window.Store = (() => {
         clienteNome: ag.clienteNome,
         criadoEm: ag.criadoEm || new Date().toISOString(),
         status: ag.status || "CONFIRMADO",
+        semPreferencia: !!ag.semPreferencia,
       };
     },
 
@@ -394,6 +395,12 @@ window.Store = (() => {
 
     async donoAgendamentos(dias = 30) {
       return window.API.get(`/api/dono/agendamentos?dias=${dias}`);
+    },
+
+    async donoReatribuirBarbeiro(id, barbeiroId) {
+      return window.API.put(`/api/dono/agendamentos/${id}/barbeiro`, {
+        barbeiroId: Number(barbeiroId),
+      });
     },
 
     async donoBarbeiros() {

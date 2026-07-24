@@ -501,27 +501,85 @@
     atualizarBtnProximo();
   }
 
+  function bindSemPref() {
+    $("#btn-sem-pref")?.addEventListener("click", async () => {
+      booking.semPreferencia = !booking.semPreferencia;
+      booking.barbeiroId = null;
+      booking.hora = null;
+      salvarDraft();
+      await renderSlots();
+      atualizarBtnProximo();
+    });
+  }
+
   async function renderSlots() {
     const box = $("#lista-barbeiros");
-    const serv = Store.getServico(booking.servicoId);
-    const duracao = serv?.duracaoMin || 30;
     const dataIso = booking.data || U().toISODate(dataSelecionada);
 
     box.innerHTML = `<p class="carregando-slots">Carregando horários…</p>`;
+
+    let html = "";
+    if (booking.path === "servico") {
+      html += `
+        <button type="button" class="btn-sem-pref ${booking.semPreferencia ? "ativo" : ""}" id="btn-sem-pref">
+          ${booking.semPreferencia ? "✓ SEM PREFERÊNCIA" : "SEM PREFERÊNCIA"}
+        </button>`;
+    }
+
+    /* Sem preferência: agrega horários livres de todos os profissionais.
+       O servidor sorteia o profissional na confirmação (dono pode remanejar). */
+    if (booking.path === "servico" && booking.semPreferencia) {
+      const horas = new Set();
+      for (const b of Store.getBarbeiros()) {
+        try {
+          (await Store.fetchSlots(b.id, dataIso, booking.servicoId)).forEach((h) =>
+            horas.add(h)
+          );
+        } catch {
+          /* ignora barbeiro com erro */
+        }
+      }
+      const ordenadas = [...horas].sort();
+      const slotsHtml = ordenadas.length
+        ? ordenadas
+            .map((h) => {
+              const on = booking.hora === h;
+              return `<button type="button" class="slot ${on ? "selecionado" : ""}" data-hora="${h}">${h}</button>`;
+            })
+            .join("")
+        : `<p class="sem-slot">Sem horários neste dia</p>`;
+
+      html += `
+        <div class="card-barbeiro">
+          <div class="card-barbeiro-topo">
+            <div class="avatar" style="background:#555">★</div>
+            <strong>Qualquer profissional</strong>
+          </div>
+          <div class="grade-slots">${slotsHtml}</div>
+        </div>`;
+
+      box.innerHTML = html;
+      bindSemPref();
+
+      $$(".slot", box).forEach((btn) => {
+        btn.addEventListener("click", () => {
+          booking.hora = btn.dataset.hora;
+          booking.barbeiroId = null;
+          booking.semPreferencia = true;
+          salvarDraft();
+          $$(".slot", box).forEach((s) =>
+            s.classList.toggle("selecionado", s.dataset.hora === booking.hora)
+          );
+          atualizarBtnProximo();
+        });
+      });
+      return;
+    }
 
     const barbeiros =
       booking.path === "profissional" && booking.barbeiroId
         ? [Store.getBarbeiro(booking.barbeiroId)].filter(Boolean)
         : Store.getBarbeiros();
-
-    let html = "";
-
-    if (booking.path === "servico") {
-      html += `
-        <button type="button" class="btn-sem-pref ${booking.semPreferencia ? "ativo" : ""}" id="btn-sem-pref">
-          SEM PREFERÊNCIA
-        </button>`;
-    }
 
     for (const b of barbeiros) {
       let slots = [];
@@ -552,26 +610,7 @@
     }
 
     box.innerHTML = html;
-
-    $("#btn-sem-pref")?.addEventListener("click", async () => {
-      booking.semPreferencia = !booking.semPreferencia;
-      if (booking.semPreferencia) {
-        for (const b of Store.getBarbeiros()) {
-          const slots = await Store.fetchSlots(b.id, dataIso, booking.servicoId);
-          if (slots.length) {
-            booking.barbeiroId = b.id;
-            booking.hora = slots[0];
-            break;
-          }
-        }
-      } else {
-        booking.barbeiroId = null;
-        booking.hora = null;
-      }
-      salvarDraft();
-      await renderSlots();
-      atualizarBtnProximo();
-    });
+    bindSemPref();
 
     $$(".slot", box).forEach((btn) => {
       btn.addEventListener("click", () => {
@@ -591,32 +630,49 @@
     });
   }
 
+  function horarioDefinido() {
+    return !!(
+      booking.data &&
+      booking.hora &&
+      (booking.barbeiroId || booking.semPreferencia)
+    );
+  }
+
   function atualizarBtnProximo() {
     const prox = $("#btn-wizard-proximo");
+    const agendar = $("#btn-wizard-agendar");
     const ativo = $(".passo.ativo")?.dataset.passo;
-    if (!prox) return;
 
-    if (ativo === "servicos") {
-      prox.disabled = !booking.servicoId;
-    } else if (ativo === "barbeiro") {
-      prox.disabled = !booking.barbeiroId;
-    } else if (ativo === "profissional") {
-      prox.disabled = !(booking.barbeiroId && booking.hora && booking.data);
+    if (prox) {
+      if (ativo === "servicos") {
+        prox.disabled = !booking.servicoId;
+      } else if (ativo === "barbeiro") {
+        prox.disabled = !booking.barbeiroId;
+      } else if (ativo === "profissional") {
+        prox.disabled = !horarioDefinido();
+      }
+    }
+
+    if (agendar) {
+      agendar.disabled = !(booking.servicoId && horarioDefinido());
     }
   }
 
   function renderConfirmar() {
     const serv = Store.getServico(booking.servicoId);
-    const barb = Store.getBarbeiro(booking.barbeiroId);
+    const semPref = booking.semPreferencia && !booking.barbeiroId;
+    const barb = semPref ? null : Store.getBarbeiro(booking.barbeiroId);
     const fim = U().fimAtendimento(booking.hora, serv?.duracaoMin || 30);
 
     $("#conf-data").textContent = U().formatarDataBR(booking.data);
     $("#conf-estab").textContent = B().estabelecimento;
-    $("#conf-barbeiro").textContent = barb?.nome || "—";
+    $("#conf-barbeiro").textContent = semPref
+      ? "Qualquer profissional"
+      : barb?.nome || "—";
     $("#conf-servico").textContent = serv?.nome || "—";
     $("#conf-horario").textContent = `${booking.hora} até ${fim}`;
-    $("#conf-avatar").textContent = barb?.iniciais || "?";
-    $("#conf-avatar").style.background = barb?.cor || "#333";
+    $("#conf-avatar").textContent = semPref ? "★" : barb?.iniciais || "?";
+    $("#conf-avatar").style.background = semPref ? "#555" : barb?.cor || "#333";
     $("#conf-politica").textContent = B().politicaCancelamento.texto;
     $("#conf-obs").value = booking.observacao || "";
 
@@ -633,8 +689,8 @@
     }
 
     const serv = Store.getServico(booking.servicoId);
-    if (!serv || !booking.barbeiroId || !booking.hora || !booking.data) {
-      toast("Complete o agendamento");
+    if (!serv || !booking.hora || !booking.data || !(booking.barbeiroId || booking.semPreferencia)) {
+      toast("Selecione um horário para agendar");
       return;
     }
 
@@ -647,11 +703,12 @@
 
     try {
       const res = await API.post("/api/agendamentos", {
-        barbeiroId: booking.barbeiroId,
+        barbeiroId: booking.semPreferencia ? null : booking.barbeiroId,
         servicoId: booking.servicoId,
         data: booking.data,
         horaInicio: horaApi(booking.hora),
         observacao: booking.observacao,
+        semPreferencia: !!booking.semPreferencia,
       });
 
       ultimoAgendamento = Store.normAgendamento(res);
@@ -725,19 +782,52 @@
         box.innerHTML = `<p class="lista-vazia">Nenhum agendamento nos próximos 30 dias</p>`;
         return;
       }
+      const barbeiros = Store.getBarbeiros();
       box.innerHTML = lista
-        .map(
-          (ag) => `
-        <article class="card-painel-ag">
+        .map((ag) => {
+          const opcoes = barbeiros
+            .map(
+              (b) =>
+                `<option value="${b.id}" ${Number(b.id) === Number(ag.barbeiroId) ? "selected" : ""}>${b.nome}</option>`
+            )
+            .join("");
+          return `
+        <article class="card-painel-ag ${ag.semPreferencia ? "sem-pref" : ""}">
           <div class="card-painel-ag-topo">
             <strong>${U().formatarDataBR(ag.data)} · ${ag.hora}</strong>
             <span>${ag.clienteNome || "Cliente"}</span>
           </div>
           <p>${ag.servicoNome} — ${ag.barbeiroNome}</p>
+          ${ag.semPreferencia ? `<span class="tag-sem-pref">Encaixe · sem preferência</span>` : ""}
           ${ag.observacao ? `<small>Obs: ${ag.observacao}</small>` : ""}
-        </article>`
-        )
+          <div class="reatribuir">
+            <label>Profissional</label>
+            <select class="sel-barbeiro" data-id="${ag.id}">${opcoes}</select>
+            <button type="button" class="btn-mover" data-id="${ag.id}">Mover</button>
+          </div>
+        </article>`;
+        })
         .join("");
+
+      $$(".btn-mover", box).forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const id = btn.dataset.id;
+          const sel = box.querySelector(`.sel-barbeiro[data-id="${id}"]`);
+          if (!sel) return;
+          btn.disabled = true;
+          const original = btn.textContent;
+          btn.textContent = "Movendo…";
+          try {
+            await Store.donoReatribuirBarbeiro(id, sel.value);
+            toast("Profissional atualizado");
+            renderPainelAgendamentos();
+          } catch (e) {
+            toast(e.message || "Erro ao mover");
+            btn.disabled = false;
+            btn.textContent = original;
+          }
+        });
+      });
     } catch (e) {
       box.innerHTML = `<p class="lista-vazia erro">${e.message || "Erro ao carregar"}</p>`;
     }

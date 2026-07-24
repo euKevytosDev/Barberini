@@ -2,6 +2,7 @@ package br.com.barberini.controller;
 
 import br.com.barberini.dto.BarbeiroRequest;
 import br.com.barberini.dto.BloqueioRequest;
+import br.com.barberini.dto.ReatribuirBarbeiroRequest;
 import br.com.barberini.dto.ServicoRequest;
 import br.com.barberini.service.AgendamentoService;
 import br.com.barberini.service.CatalogoService;
@@ -28,6 +29,12 @@ public class DonoController {
     @GetMapping("/agendamentos")
     public List<Map<String, Object>> agenda(@RequestParam(defaultValue = "30") int dias) {
         return agendamentos.todosProximos(dias);
+    }
+
+    @PutMapping("/agendamentos/{id}/barbeiro")
+    public Map<String, Object> reatribuirBarbeiro(
+            @PathVariable Long id, @Valid @RequestBody ReatribuirBarbeiroRequest req) {
+        return agendamentos.reatribuirBarbeiro(id, req.barbeiroId());
     }
 
     @GetMapping("/barbeiros")

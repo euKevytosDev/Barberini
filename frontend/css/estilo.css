@@ -1280,6 +1280,62 @@ body {
   color: var(--texto-suave);
   font-size: 0.78rem;
 }
+.card-painel-ag.sem-pref {
+  border-left: 3px solid #c9a227;
+}
+.tag-sem-pref {
+  display: inline-block;
+  margin-top: 6px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #8a6d0b;
+  background: #f6edcf;
+  padding: 3px 8px;
+  border-radius: 999px;
+}
+.reatribuir {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--linha);
+}
+.reatribuir label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--texto-suave);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.reatribuir .sel-barbeiro {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--linha);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font: inherit;
+  font-size: 0.85rem;
+  background: #fff;
+}
+.reatribuir .btn-mover {
+  border: none;
+  background: var(--preto);
+  color: #fff;
+  font: inherit;
+  font-weight: 700;
+  font-size: 0.8rem;
+  padding: 8px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.reatribuir .btn-mover:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
 .card-painel-item {
   display: flex;
   align-items: center;

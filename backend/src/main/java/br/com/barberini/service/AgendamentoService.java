@@ -14,9 +14,11 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ThreadLocalRandom;
 
 @Service
 public class AgendamentoService {
@@ -45,17 +47,24 @@ public class AgendamentoService {
         Long clienteId = AuthSupport.atual().getId();
         Usuario cliente = usuarios.findById(clienteId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Usuário inválido"));
-        Barbeiro barbeiro = barbeiros.findById(req.barbeiroId())
-                .filter(Barbeiro::isAtivo)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Barbeiro indisponível"));
         Servico servico = servicos.findById(req.servicoId())
                 .filter(Servico::isAtivo)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Serviço indisponível"));
 
-        List<String> livres = agenda.slotsDisponiveis(barbeiro.getId(), req.data(), servico.getDuracaoMin());
         String horaStr = req.horaInicio().toString().substring(0, 5);
-        if (!livres.contains(horaStr)) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Horário indisponível. Escolha outro.");
+        boolean semPreferencia = Boolean.TRUE.equals(req.semPreferencia()) || req.barbeiroId() == null;
+
+        Barbeiro barbeiro;
+        if (semPreferencia) {
+            barbeiro = sortearBarbeiroDisponivel(req.data(), horaStr, servico.getDuracaoMin());
+        } else {
+            barbeiro = barbeiros.findById(req.barbeiroId())
+                    .filter(Barbeiro::isAtivo)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Barbeiro indisponível"));
+            List<String> livres = agenda.slotsDisponiveis(barbeiro.getId(), req.data(), servico.getDuracaoMin());
+            if (!livres.contains(horaStr)) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "Horário indisponível. Escolha outro.");
+            }
         }
 
         LocalTime fim = agenda.calcularFim(req.horaInicio(), servico.getDuracaoMin());
@@ -68,6 +77,46 @@ public class AgendamentoService {
         a.setHoraFim(fim);
         a.setObservacao(req.observacao());
         a.setStatus(StatusAgendamento.CONFIRMADO);
+        a.setSemPreferencia(semPreferencia);
+        return map(agendamentos.save(a));
+    }
+
+    /** Encaixe automático: entre os barbeiros livres no horário, escolhe um aleatório. */
+    private Barbeiro sortearBarbeiroDisponivel(LocalDate data, String horaStr, int duracaoMin) {
+        List<Barbeiro> candidatos = new ArrayList<>();
+        for (Barbeiro b : barbeiros.findByAtivoTrueOrderByNomeAsc()) {
+            if (agenda.slotsDisponiveis(b.getId(), data, duracaoMin).contains(horaStr)) {
+                candidatos.add(b);
+            }
+        }
+        if (candidatos.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Nenhum profissional disponível nesse horário.");
+        }
+        return candidatos.get(ThreadLocalRandom.current().nextInt(candidatos.size()));
+    }
+
+    @Transactional
+    public Map<String, Object> reatribuirBarbeiro(Long id, Long novoBarbeiroId) {
+        AuthSupport.exigirDono();
+        Agendamento a = agendamentos.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Agendamento não encontrado"));
+        if (a.getStatus() == StatusAgendamento.CANCELADO) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Agendamento cancelado");
+        }
+        Barbeiro novo = barbeiros.findById(novoBarbeiroId)
+                .filter(Barbeiro::isAtivo)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Barbeiro indisponível"));
+
+        if (!novo.getId().equals(a.getBarbeiro().getId())) {
+            String horaStr = a.getHoraInicio().toString().substring(0, 5);
+            List<String> livres = agenda.slotsDisponiveis(novo.getId(), a.getData(), a.getServico().getDuracaoMin());
+            if (!livres.contains(horaStr)) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "Profissional ocupado nesse horário.");
+            }
+        }
+
+        a.setBarbeiro(novo);
+        a.setSemPreferencia(false);
         return map(agendamentos.save(a));
     }
 
@@ -117,6 +166,7 @@ public class AgendamentoService {
         m.put("fim", a.getHoraFim().toString().substring(0, 5));
         m.put("observacao", a.getObservacao());
         m.put("status", a.getStatus().name());
+        m.put("semPreferencia", a.isSemPreferencia());
         m.put("clienteNome", a.getCliente().getNome());
         m.put("clienteEmail", a.getCliente().getEmail());
         m.put("barbeiroId", a.getBarbeiro().getId());

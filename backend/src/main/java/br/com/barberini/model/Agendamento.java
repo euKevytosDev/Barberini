@@ -42,6 +42,10 @@ public class Agendamento {
     @Column(nullable = false, length = 20)
     private StatusAgendamento status = StatusAgendamento.CONFIRMADO;
 
+    /** true quando o cliente não escolheu profissional (encaixe automático, dono pode remanejar) */
+    @Column(nullable = false)
+    private boolean semPreferencia = false;
+
     @Column(nullable = false)
     private LocalDateTime criadoEm = LocalDateTime.now();
 
@@ -65,6 +69,8 @@ public class Agendamento {
     public void setObservacao(String observacao) { this.observacao = observacao; }
     public StatusAgendamento getStatus() { return status; }
     public void setStatus(StatusAgendamento status) { this.status = status; }
+    public boolean isSemPreferencia() { return semPreferencia; }
+    public void setSemPreferencia(boolean semPreferencia) { this.semPreferencia = semPreferencia; }
     public LocalDateTime getCriadoEm() { return criadoEm; }
     public void setCriadoEm(LocalDateTime criadoEm) { this.criadoEm = criadoEm; }
 }

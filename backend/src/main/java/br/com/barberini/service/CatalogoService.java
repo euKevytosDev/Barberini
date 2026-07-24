@@ -11,6 +11,7 @@ import br.com.barberini.repository.BloqueioHorarioRepository;
 import br.com.barberini.repository.ServicoRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.LinkedHashMap;
@@ -66,6 +67,7 @@ public class CatalogoService {
         return mapServico(servicos.save(s));
     }
 
+    @Transactional
     public Map<String, Object> criarBloqueio(BloqueioRequest req) {
         BloqueioHorario b = new BloqueioHorario();
         b.setData(req.data());
@@ -87,6 +89,7 @@ public class CatalogoService {
         bloqueios.deleteById(id);
     }
 
+    @Transactional(readOnly = true)
     public List<Map<String, Object>> listarBloqueios(java.time.LocalDate data) {
         return bloqueios.findByData(data).stream().map(this::mapBloqueio).toList();
     }

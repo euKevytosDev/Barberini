@@ -71,6 +71,7 @@ public class AgendamentoService {
         return map(agendamentos.save(a));
     }
 
+    @Transactional(readOnly = true)
     public List<Map<String, Object>> meus() {
         Long id = AuthSupport.atual().getId();
         LocalDate hoje = LocalDate.now();
@@ -82,6 +83,7 @@ public class AgendamentoService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
     public List<Map<String, Object>> todosProximos(int dias) {
         AuthSupport.exigirDono();
         LocalDate hoje = LocalDate.now();

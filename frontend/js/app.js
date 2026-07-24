@@ -19,6 +19,12 @@
   let ultimoAgendamento = null;
   let painelSecao = "agendamentos";
 
+  /** Painel: desativar horários (UI estilo agenda do cliente) */
+  let bloqueioBarbeiroId = null;
+  let bloqueioDataSel = new Date();
+  let bloqueioCalCursor = new Date();
+  let bloqueiosDoDia = []; // cache da data selecionada
+
   const $ = (sel, root = document) => root.querySelector(sel);
   const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 
@@ -876,91 +882,232 @@
 
   async function renderPainelBloqueios() {
     const box = $("#painel-conteudo");
-    const hoje = U().toISODate(new Date());
-    box.innerHTML = `
-      <div class="form-painel bloqueio-form">
-        <h4>Desativar horário</h4>
-        <label>Data<input type="date" id="bl-data" value="${hoje}" /></label>
-        <label>Barbeiro
-          <select id="bl-barbeiro">
-            <option value="">Todos</option>
-            ${Store.getBarbeiros()
-              .map((b) => `<option value="${b.id}">${b.nome}</option>`)
-              .join("")}
-          </select>
-        </label>
-        <label>Horário<input type="time" id="bl-hora" step="1800" value="09:00" /></label>
-        <label>Motivo (opcional)<input type="text" id="bl-motivo" maxlength="160" /></label>
-        <button type="button" class="btn btn-solid" id="bl-salvar">Bloquear horário</button>
-      </div>
-      <div id="lista-bloqueios"></div>`;
+    box.innerHTML = `<p class="carregando-slots">Carregando…</p>`;
 
-    $("#bl-salvar")?.addEventListener("click", criarBloqueio);
-    $("#bl-data")?.addEventListener("change", carregarListaBloqueios);
-    await carregarListaBloqueios();
-  }
-
-  async function criarBloqueio() {
-    const data = $("#bl-data").value;
-    const horaRaw = $("#bl-hora").value;
-    const barbeiroVal = $("#bl-barbeiro").value;
-    const motivo = $("#bl-motivo")?.value?.trim() || null;
-    if (!data || !horaRaw) {
-      toast("Informe data e horário");
+    if (!bloqueioBarbeiroId) {
+      await renderBloqueioEscolherBarbeiro(box);
       return;
     }
-    const body = {
-      data,
-      hora: horaRaw.length === 5 ? horaRaw + ":00" : horaRaw,
-      barbeiroId: barbeiroVal ? Number(barbeiroVal) : null,
-      motivo,
-    };
-    try {
-      await Store.donoCriarBloqueio(body);
-      toast("Horário bloqueado");
-      await carregarListaBloqueios();
-    } catch (e) {
-      toast(e.message || "Erro");
-    }
+    await renderBloqueioGrade(box);
   }
 
-  async function carregarListaBloqueios() {
-    const data = $("#bl-data")?.value;
-    const lista = $("#lista-bloqueios");
-    if (!data || !lista) return;
-    lista.innerHTML = `<p class="carregando-slots">Carregando…</p>`;
+  async function renderBloqueioEscolherBarbeiro(box) {
     try {
-      const items = await Store.donoBloqueios(data);
-      if (!items.length) {
-        lista.innerHTML = `<p class="lista-vazia">Nenhum bloqueio nesta data</p>`;
-        return;
-      }
-      lista.innerHTML = items
-        .map(
-          (bl) => `
-        <article class="card-painel-item">
-          <div class="card-painel-item-info">
-            <strong>${bl.hora}</strong>
-            <span>${bl.barbeiroNome || "Todos"}</span>
-            ${bl.motivo ? `<small>${bl.motivo}</small>` : ""}
-          </div>
-          <button type="button" class="btn-excluir" data-id="${bl.id}">Remover</button>
-        </article>`
-        )
-        .join("");
-      $$(".btn-excluir", lista).forEach((btn) => {
-        btn.addEventListener("click", async () => {
-          try {
-            await Store.donoRemoverBloqueio(btn.dataset.id);
-            toast("Bloqueio removido");
-            await carregarListaBloqueios();
-          } catch (e) {
-            toast(e.message || "Erro");
-          }
+      const lista = await Store.donoBarbeiros();
+      const ativos = lista.filter((b) => b.ativo !== false);
+      box.innerHTML = `
+        <p class="bloqueio-dica">Escolha o profissional para liberar ou bloquear horários. Toque no horário — vermelho = indisponível para o cliente.</p>
+        <div class="lista-barbeiros-bloqueio">
+          ${ativos
+            .map(
+              (b) => `
+            <button type="button" class="card-barbeiro-pick" data-id="${b.id}">
+              <div class="avatar" style="background:${b.cor}">${b.iniciais}</div>
+              <strong>${b.nome}</strong>
+              <span>Gerenciar horários →</span>
+            </button>`
+            )
+            .join("")}
+        </div>`;
+      $$(".card-barbeiro-pick", box).forEach((btn) => {
+        btn.addEventListener("click", () => {
+          bloqueioBarbeiroId = Number(btn.dataset.id);
+          bloqueioDataSel = new Date();
+          bloqueioCalCursor = new Date();
+          renderPainelBloqueios();
         });
       });
     } catch (e) {
-      lista.innerHTML = `<p class="lista-vazia erro">${e.message || "Erro"}</p>`;
+      box.innerHTML = `<p class="lista-vazia erro">${e.message || "Erro"}</p>`;
+    }
+  }
+
+  async function renderBloqueioGrade(box) {
+    const barbeiros = Store.getBarbeiros();
+    let barb = barbeiros.find((b) => Number(b.id) === Number(bloqueioBarbeiroId));
+    if (!barb) {
+      try {
+        const lista = await Store.donoBarbeiros();
+        barb = lista.find((b) => Number(b.id) === Number(bloqueioBarbeiroId));
+      } catch (_) {}
+    }
+    if (!barb) {
+      bloqueioBarbeiroId = null;
+      return renderPainelBloqueios();
+    }
+
+    const { mes, ano } = U().mesAno(bloqueioCalCursor);
+    box.innerHTML = `
+      <button type="button" class="btn-voltar-barbeiro" id="bl-voltar-barbeiro">← Trocar profissional</button>
+      <div class="bloqueio-header-barb">
+        <div class="avatar" style="background:${barb.cor}">${barb.iniciais}</div>
+        <div>
+          <strong>${barb.nome}</strong>
+          <span>Toque no horário para bloquear / liberar</span>
+        </div>
+      </div>
+      <div class="cal-wrap bloqueio-cal">
+        <div class="cal-topo">
+          <button type="button" class="cal-nav" id="bl-cal-prev" aria-label="Semana anterior">‹</button>
+          <strong id="bl-cal-mes">${mes}</strong>
+          <span class="ano" id="bl-cal-ano">${ano}</span>
+          <button type="button" class="cal-nav" id="bl-cal-next" aria-label="Próxima semana">›</button>
+          <button type="button" class="btn-hoje" id="bl-cal-hoje">Hoje</button>
+        </div>
+        <div id="bl-cal-dias" class="cal-dias-row"></div>
+      </div>
+      <p class="bloqueio-legenda"><span class="leg-livre"></span> Livre <span class="leg-bloq"></span> Bloqueado <span class="leg-ocup"></span> Já agendado</p>
+      <div id="bl-grade-slots" class="grade-slots bloqueio-grade">
+        <p class="carregando-slots">Carregando horários…</p>
+      </div>`;
+
+    $("#bl-voltar-barbeiro")?.addEventListener("click", () => {
+      bloqueioBarbeiroId = null;
+      renderPainelBloqueios();
+    });
+    $("#bl-cal-prev")?.addEventListener("click", () => {
+      bloqueioDataSel = new Date(bloqueioDataSel);
+      bloqueioDataSel.setDate(bloqueioDataSel.getDate() - 7);
+      bloqueioCalCursor = new Date(bloqueioDataSel);
+      renderPainelBloqueios();
+    });
+    $("#bl-cal-next")?.addEventListener("click", () => {
+      bloqueioDataSel = new Date(bloqueioDataSel);
+      bloqueioDataSel.setDate(bloqueioDataSel.getDate() + 7);
+      bloqueioCalCursor = new Date(bloqueioDataSel);
+      renderPainelBloqueios();
+    });
+    $("#bl-cal-hoje")?.addEventListener("click", () => {
+      bloqueioDataSel = new Date();
+      bloqueioCalCursor = new Date();
+      renderPainelBloqueios();
+    });
+
+    renderBloqueioCalendario();
+    await carregarBloqueioSlots();
+  }
+
+  function renderBloqueioCalendario() {
+    const dias = $("#bl-cal-dias");
+    if (!dias) return;
+    const { mes, ano } = U().mesAno(bloqueioCalCursor);
+    const mesEl = $("#bl-cal-mes");
+    const anoEl = $("#bl-cal-ano");
+    if (mesEl) mesEl.textContent = mes;
+    if (anoEl) anoEl.textContent = String(ano);
+
+    const ref = new Date(bloqueioDataSel);
+    const domingo = new Date(ref);
+    domingo.setDate(ref.getDate() - ref.getDay());
+
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+
+    dias.innerHTML = "";
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(domingo);
+      d.setDate(domingo.getDate() + i);
+      const selecionado = U().isMesmoDia(d, bloqueioDataSel);
+      const ehHoje = U().isMesmoDia(d, hoje);
+      const funciona = B().agenda.diasFuncionamento.includes(d.getDay());
+
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className =
+        "cal-dia" +
+        (selecionado ? " selecionado" : "") +
+        (ehHoje ? " hoje" : "") +
+        (!funciona ? " disabled" : "");
+      btn.disabled = !funciona;
+      btn.innerHTML = `<span>${U().diaSemanaLetra(d)}</span><strong>${d.getDate()}</strong>`;
+      btn.addEventListener("click", () => {
+        bloqueioDataSel = d;
+        bloqueioCalCursor = new Date(d);
+        renderBloqueioCalendario();
+        carregarBloqueioSlots();
+      });
+      dias.appendChild(btn);
+    }
+  }
+
+  async function carregarBloqueioSlots() {
+    const grade = $("#bl-grade-slots");
+    if (!grade || !bloqueioBarbeiroId) return;
+    const dataIso = U().toISODate(bloqueioDataSel);
+    grade.innerHTML = `<p class="carregando-slots">Carregando…</p>`;
+
+    try {
+      const [bloqueios, agendaDono] = await Promise.all([
+        Store.donoBloqueios(dataIso),
+        Store.donoAgendamentos(60).catch(() => []),
+      ]);
+      bloqueiosDoDia = bloqueios.filter(
+        (bl) =>
+          bl.barbeiroId == null ||
+          Number(bl.barbeiroId) === Number(bloqueioBarbeiroId)
+      );
+
+      const ocupados = new Set(
+        (agendaDono || [])
+          .filter(
+            (ag) =>
+              ag.data === dataIso &&
+              Number(ag.barbeiroId) === Number(bloqueioBarbeiroId)
+          )
+          .map((ag) => String(ag.hora).slice(0, 5))
+      );
+
+      const mapaBloq = new Map();
+      bloqueiosDoDia.forEach((bl) => {
+        mapaBloq.set(String(bl.hora).slice(0, 5), bl);
+      });
+
+      const slots = U().gerarSlots();
+      grade.innerHTML = slots
+        .map((hora) => {
+          const bl = mapaBloq.get(hora);
+          const ocupado = ocupados.has(hora);
+          if (ocupado) {
+            return `<button type="button" class="slot slot-ocupado" disabled title="Já agendado">${hora}</button>`;
+          }
+          if (bl) {
+            return `<button type="button" class="slot slot-bloqueado" data-hora="${hora}" data-id="${bl.id}" title="Clique para liberar">${hora}</button>`;
+          }
+          return `<button type="button" class="slot slot-livre" data-hora="${hora}" title="Clique para bloquear">${hora}</button>`;
+        })
+        .join("");
+
+      $$(".slot-livre", grade).forEach((btn) => {
+        btn.addEventListener("click", () => toggleBloqueioSlot(btn.dataset.hora, null));
+      });
+      $$(".slot-bloqueado", grade).forEach((btn) => {
+        btn.addEventListener("click", () =>
+          toggleBloqueioSlot(btn.dataset.hora, btn.dataset.id)
+        );
+      });
+    } catch (e) {
+      grade.innerHTML = `<p class="lista-vazia erro">${e.message || "Erro ao carregar"}</p>`;
+    }
+  }
+
+  async function toggleBloqueioSlot(hora, bloqueioId) {
+    const dataIso = U().toISODate(bloqueioDataSel);
+    try {
+      if (bloqueioId) {
+        await Store.donoRemoverBloqueio(bloqueioId);
+        toast(`${hora} liberado`);
+      } else {
+        await Store.donoCriarBloqueio({
+          data: dataIso,
+          hora: hora.length === 5 ? hora + ":00" : hora,
+          barbeiroId: Number(bloqueioBarbeiroId),
+          motivo: "Bloqueado pelo profissional",
+        });
+        toast(`${hora} bloqueado`);
+      }
+      await carregarBloqueioSlots();
+    } catch (e) {
+      toast(e.message || "Erro");
     }
   }
 

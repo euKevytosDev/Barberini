@@ -17,6 +17,10 @@ Frontend conectado ao backend Spring Boot (API REST). O rascunho do agendamento 
 5. O H2 em **arquivo** (`backend/data/barberini`) é populado no seed com barbeiros, serviços e o usuário dono (persiste ao reiniciar)
 
 > Se aparecer `TypeTag :: UNKNOWN`: o projeto **não usa mais Lombok**. Dê *File → Invalidate Caches* ou *Maven → Reload*, e rode de novo.
+>
+> Se o app **inicia e encerra na hora**: a porta **8080** já está em uso (outro `java` rodando). No terminal: `lsof -i :8080` e mate o PID, ou mude `server.port` no `application-local.properties`.
+>
+> Os avisos `WARNING: A restricted method in java.lang.System` no Java 25 são **só warning** — não derrubam o app. Use SDK 17 ou adicione VM option `--enable-native-access=ALL-UNNAMED`.
 
 ### Frontend
 

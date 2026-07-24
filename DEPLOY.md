@@ -20,6 +20,9 @@ SPRING_DATASOURCE_USERNAME=neondb_owner
 SPRING_DATASOURCE_PASSWORD=<senha no console Neon / mensagem do Cursor>
 ```
 
+**Importante:** a URL **precisa** começar com `jdbc:postgresql://` (não só `postgresql://`).  
+Se colar sem o `jdbc:`, o driver quebra com `claims to not accept jdbcUrl`.
+
 > A senha não vai no Git. Copie no [console Neon](https://console.neon.tech/app/projects/icy-surf-10621417).
 
 ## Render free (Blueprint)

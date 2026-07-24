@@ -4,3 +4,7 @@ node_modules/
 *.log
 .env
 .env.*
+backend/target/
+backend/data/
+backend/.idea/
+*.iml

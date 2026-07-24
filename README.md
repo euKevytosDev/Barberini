@@ -13,7 +13,7 @@ Frontend conectado ao backend Spring Boot (API REST). O rascunho do agendamento 
 1. Abra a pasta `backend/` no IntelliJ IDEA
 2. Configure o SDK **Java 17**
 3. Execute `BarberiniApplication` (porta **8080**)
-4. O H2 em memória é populado automaticamente com barbeiros, serviços e usuário dono
+4. O H2 em **arquivo** (`backend/data/barberini`) é populado no seed com barbeiros, serviços e o usuário dono (persiste ao reiniciar)
 
 ### Frontend
 

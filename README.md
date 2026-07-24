@@ -1,19 +1,21 @@
 # Barberini Barbearia
 
-App web mobile-first de agendamento — mesma ideia do [Pelada Oficial](https://github.com/eukevytosdev/pelada-oficial): roda no navegador com cara de app de celular.
+App web mobile-first de agendamento — mesma ideia do [Pelada Oficial](https://github.com/euKevytosDev/pelada-oficial): roda no navegador com cara de app de celular.
+
+**Site (GitHub Pages):** https://eukevytosdev.github.io/Barberini/
 
 Espelha o app atual da barbearia (visão do cliente): serviços, preços, 3 barbeiros, slots de 30 min, política de cancelamento.
 
-## Como abrir
+> Por enquanto **não tem backend**. Tudo fica no `localStorage` do navegador (MVP). O IntelliJ/Spring Boot do Pelada Oficial **não** se aplica aqui ainda.
+
+## Como abrir local
 
 ```bash
 cd frontend
 python3 -m http.server 5173
 ```
 
-Abre no celular ou no Chrome: [http://localhost:5173](http://localhost:5173)
-
-> Dica: no Chrome, F12 → toggle de device (iPhone) pra ver no formato de app.
+Abre: [http://localhost:5173](http://localhost:5173)
 
 ## O que já tem
 
@@ -24,7 +26,7 @@ Abre no celular ou no Chrome: [http://localhost:5173](http://localhost:5173)
 - Serviços e preços do app atual
 - Slots 09:00–19:00, intervalo de almoço 12:00–13:30
 - Política: cancelar com menos de 1h → taxa 50%
-- Dados salvos no `localStorage` (MVP sem backend)
+- Dados salvos no `localStorage`
 
 ## Estrutura
 
@@ -42,6 +44,6 @@ Barberini/
 
 ## Próximos passos (quando quiser)
 
+- Backend (API) — aí sim IntelliJ / Spring, tipo o Pelada
 - Painel do dono/barbeiro
-- Backend + WhatsApp lembrete
-- Publicar no GitHub Pages
+- WhatsApp lembrete

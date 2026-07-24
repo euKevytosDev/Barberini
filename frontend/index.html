@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
+  <meta name="theme-color" content="#1a1a1a" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="Barberini" />
+  <meta name="description" content="Agende seu horário na Barberini Barbearia" />
+  <title>Barberini Barbearia</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/estilo.css" />
+</head>
+<body>
+  <div id="splash" class="splash" role="status" aria-label="Carregando Barberini">
+    <div class="splash-conteudo">
+      <div class="login-b" style="margin:0 auto 18px;border-color:#fff;color:#fff">B</div>
+      <p class="splash-logo">BARBERINI</p>
+      <p class="splash-sub">Barbearia</p>
+      <div class="splash-barra" aria-hidden="true"><div class="splash-barra-fill"></div></div>
+    </div>
+  </div>
+
+  <div class="app-shell">
+    <!-- LOGIN -->
+    <section id="tela-login" class="tela-login">
+      <div class="login-topo">
+        <span>Saiba mais</span>
+        <span>BR</span>
+      </div>
+      <div class="login-marca">
+        <div class="login-b">B</div>
+        <h1 class="login-titulo">BARBERINI</h1>
+        <p class="login-subtitulo">Barbearia</p>
+      </div>
+      <form id="form-login" class="login-acoes">
+        <label>
+          Seu nome
+          <input type="text" id="login-nome" placeholder="Ex: Raian Kevin" maxlength="80" required autocomplete="name" />
+        </label>
+        <label>
+          E-mail (opcional)
+          <input type="email" id="login-email" placeholder="voce@email.com" autocomplete="email" />
+        </label>
+        <button type="submit" class="btn-login-principal">Entrar na Barberini</button>
+        <button type="button" class="btn-login-ghost" id="btn-login-demo">Entrar como demonstração</button>
+      </form>
+      <p class="login-rodape">Agendamento pelo navegador — sem instalar app</p>
+    </section>
+
+    <!-- APP -->
+    <section id="tela-app" class="tela-app oculto">
+      <header class="app-header">
+        <button type="button" class="ico" aria-label="Informações">ⓘ</button>
+        <div class="app-header-centro">
+          <strong>BARBERINI</strong>
+          <span id="header-user">Cliente</span>
+        </div>
+        <button type="button" class="ico" aria-label="Notificações">🔔</button>
+      </header>
+
+      <div class="sub-header">
+        <div class="logo-mini">B</div>
+        <h2 id="titulo-aba">Agenda</h2>
+      </div>
+
+      <!-- ABA AGENDA -->
+      <div class="aba-conteudo ativa" id="aba-agenda">
+        <div id="agenda-vazia" class="agenda-vazia">
+          <div class="aviso-ico">!</div>
+          <p>Você não tem compromissos para os próximos 30 dias.<br /><strong>BARBERINI</strong></p>
+        </div>
+        <div id="lista-agenda"></div>
+      </div>
+
+      <!-- ABA PERFIL -->
+      <div class="aba-conteudo" id="aba-perfil">
+        <div class="perfil-box">
+          <div class="perfil-avatar-grande" id="perfil-iniciais">CL</div>
+          <h3 id="perfil-nome">Cliente</h3>
+          <p class="email" id="perfil-email">—</p>
+          <div class="perfil-stats">
+            <strong id="perfil-total">0</strong>
+            <span>Agendamentos</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ABA OPÇÕES -->
+      <div class="aba-conteudo" id="aba-opcoes">
+        <div class="opcoes-lista">
+          <button type="button" class="opcao-item" id="btn-relatar">🐛 Relatar um problema</button>
+          <button type="button" class="opcao-item perigo" id="btn-sair">↩ Sair</button>
+        </div>
+      </div>
+
+      <button type="button" class="btn-fab-agendar" id="btn-agendar">+ AGENDAR</button>
+
+      <nav class="bottom-nav" aria-label="Navegação principal">
+        <button type="button" class="tab ativa" data-tab="agenda">
+          <span class="tab-ico">📅</span>
+          Agenda
+        </button>
+        <button type="button" class="tab" data-tab="perfil">
+          <span class="tab-ico">👤</span>
+          Perfil
+        </button>
+        <button type="button" class="tab" data-tab="opcoes">
+          <span class="tab-ico">⚙</span>
+          Opções
+        </button>
+      </nav>
+
+      <!-- WIZARD AGENDAR -->
+      <div id="wizard" class="wizard oculto">
+        <!-- PASSO SERVIÇOS -->
+        <div class="passo ativo" data-passo="servicos">
+          <header class="wizard-header">
+            <div>
+              <h2>Escolher Serviços</h2>
+              <p>BARBERINI</p>
+            </div>
+            <button type="button" class="btn-x btn-fechar-wizard" aria-label="Fechar">×</button>
+          </header>
+          <div class="passo-corpo">
+            <div class="filtro-bar">
+              <button type="button" class="pill-cat">CABELO +</button>
+            </div>
+            <div class="busca-wrap">
+              <span class="lupa">🔍</span>
+              <input type="search" id="busca-servico" placeholder="Buscar serviços..." />
+            </div>
+            <div id="lista-servicos"></div>
+          </div>
+          <footer class="passo-footer">
+            <button type="button" class="btn btn-outline" id="btn-servicos-voltar">Voltar</button>
+            <button type="button" class="btn btn-solid" id="btn-servicos-proximo" disabled>Próximo</button>
+          </footer>
+        </div>
+
+        <!-- PASSO PROFISSIONAL -->
+        <div class="passo" data-passo="profissional">
+          <header class="wizard-header">
+            <div>
+              <h2>Escolher Profissional</h2>
+              <p>BARBERINI</p>
+            </div>
+            <button type="button" class="btn-x btn-fechar-wizard" aria-label="Fechar">×</button>
+          </header>
+          <div class="passo-corpo">
+            <div class="cal-wrap">
+              <div class="cal-topo">
+                <button type="button" class="cal-nav" id="cal-prev" aria-label="Mês anterior">‹</button>
+                <strong id="cal-mes">Julho</strong>
+                <span class="ano" id="cal-ano">2026</span>
+                <button type="button" class="cal-nav" id="cal-next" aria-label="Próximo mês">›</button>
+                <button type="button" class="btn-hoje" id="cal-hoje">Hoje</button>
+              </div>
+              <div id="cal-dias"></div>
+            </div>
+
+            <div class="chip-servico">
+              <div class="info">
+                <strong id="chip-servico-nome">—</strong>
+                <span id="chip-servico-meta"></span>
+              </div>
+              <button type="button" class="btn-remover-chip" id="btn-remover-servico" aria-label="Remover serviço">×</button>
+            </div>
+
+            <div id="lista-barbeiros"></div>
+          </div>
+          <footer class="passo-footer">
+            <button type="button" class="btn btn-outline" id="btn-prof-voltar">Voltar</button>
+            <button type="button" class="btn btn-solid" id="btn-prof-proximo" disabled>Próximo</button>
+          </footer>
+        </div>
+
+        <!-- PASSO CONFIRMAR -->
+        <div class="passo" data-passo="confirmar">
+          <header class="wizard-header">
+            <div>
+              <h2>Criar Agendamento</h2>
+              <p>BARBERINI</p>
+            </div>
+            <button type="button" class="btn-x btn-fechar-wizard" aria-label="Fechar">×</button>
+          </header>
+          <div class="passo-corpo">
+            <div class="conf-barra">
+              <div>
+                <small>Data</small>
+                <strong id="conf-data">—</strong>
+              </div>
+              <div>
+                <small>Estabelecimento</small>
+                <strong id="conf-estab">BARBERINI</strong>
+              </div>
+            </div>
+            <p class="conf-dica">Confira os serviços e horários escolhidos e confirme para finalizar o agendamento</p>
+
+            <div class="conf-card">
+              <div class="avatar" id="conf-avatar">?</div>
+              <div class="info">
+                <p class="barbeiro-nome" id="conf-barbeiro">—</p>
+                <p class="servico-nome" id="conf-servico">—</p>
+                <input type="text" id="conf-obs" placeholder="+ Adicionar observação" maxlength="200" />
+              </div>
+              <div class="conf-horario" id="conf-horario">—</div>
+            </div>
+
+            <div class="politica">
+              <strong>Política de cancelamento</strong>
+              <p id="conf-politica"></p>
+            </div>
+          </div>
+          <footer class="passo-footer">
+            <button type="button" class="btn btn-outline" id="btn-conf-cancelar">Cancelar</button>
+            <button type="button" class="btn btn-solid" id="btn-conf-agendar">Agendar</button>
+          </footer>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script src="js/data.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

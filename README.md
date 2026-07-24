@@ -11,9 +11,12 @@ Frontend conectado ao backend Spring Boot (API REST). O rascunho do agendamento 
 ### Backend (IntelliJ)
 
 1. Abra a pasta `backend/` no IntelliJ IDEA
-2. Configure o SDK **Java 17**
-3. Execute `BarberiniApplication` (porta **8080**)
-4. O H2 em **arquivo** (`backend/data/barberini`) é populado no seed com barbeiros, serviços e o usuário dono (persiste ao reiniciar)
+2. **Project SDK = Java 17** (File → Project Structure → SDK). Evite Java 25 se puder.
+3. Maven reload (ícone do elefante / Reload project)
+4. Execute `BarberiniApplication` (porta **8080**)
+5. O H2 em **arquivo** (`backend/data/barberini`) é populado no seed com barbeiros, serviços e o usuário dono (persiste ao reiniciar)
+
+> Se aparecer `TypeTag :: UNKNOWN`: o projeto **não usa mais Lombok**. Dê *File → Invalidate Caches* ou *Maven → Reload*, e rode de novo.
 
 ### Frontend
 

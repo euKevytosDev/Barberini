@@ -1,8 +1,5 @@
 package br.com.barberini.security;
 
-import lombok.Getter;
-
-@Getter
 public class UsuarioPrincipal {
     private final Long id;
     private final String email;
@@ -13,6 +10,10 @@ public class UsuarioPrincipal {
         this.email = email;
         this.papel = papel;
     }
+
+    public Long getId() { return id; }
+    public String getEmail() { return email; }
+    public String getPapel() { return papel; }
 
     public boolean isDono() {
         return "DONO".equalsIgnoreCase(papel);

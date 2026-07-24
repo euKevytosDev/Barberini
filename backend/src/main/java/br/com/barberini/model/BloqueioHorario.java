@@ -1,22 +1,13 @@
 package br.com.barberini.model;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
 
-/**
- * Horário desativado pelo dono.
- * Se barbeiro for null, aplica a todos.
- */
+/** Horário desativado pelo dono. Se barbeiro for null, aplica a todos. */
 @Entity
 @Table(name = "bloqueios_horario")
-@Getter
-@Setter
-@NoArgsConstructor
 public class BloqueioHorario {
 
     @Id
@@ -35,4 +26,17 @@ public class BloqueioHorario {
 
     @Column(length = 160)
     private String motivo;
+
+    public BloqueioHorario() {}
+
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+    public Barbeiro getBarbeiro() { return barbeiro; }
+    public void setBarbeiro(Barbeiro barbeiro) { this.barbeiro = barbeiro; }
+    public LocalDate getData() { return data; }
+    public void setData(LocalDate data) { this.data = data; }
+    public LocalTime getHora() { return hora; }
+    public void setHora(LocalTime hora) { this.hora = hora; }
+    public String getMotivo() { return motivo; }
+    public void setMotivo(String motivo) { this.motivo = motivo; }
 }

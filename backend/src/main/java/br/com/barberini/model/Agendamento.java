@@ -1,9 +1,6 @@
 package br.com.barberini.model;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -11,9 +8,6 @@ import java.time.LocalTime;
 
 @Entity
 @Table(name = "agendamentos")
-@Getter
-@Setter
-@NoArgsConstructor
 public class Agendamento {
 
     @Id
@@ -50,4 +44,27 @@ public class Agendamento {
 
     @Column(nullable = false)
     private LocalDateTime criadoEm = LocalDateTime.now();
+
+    public Agendamento() {}
+
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+    public Usuario getCliente() { return cliente; }
+    public void setCliente(Usuario cliente) { this.cliente = cliente; }
+    public Barbeiro getBarbeiro() { return barbeiro; }
+    public void setBarbeiro(Barbeiro barbeiro) { this.barbeiro = barbeiro; }
+    public Servico getServico() { return servico; }
+    public void setServico(Servico servico) { this.servico = servico; }
+    public LocalDate getData() { return data; }
+    public void setData(LocalDate data) { this.data = data; }
+    public LocalTime getHoraInicio() { return horaInicio; }
+    public void setHoraInicio(LocalTime horaInicio) { this.horaInicio = horaInicio; }
+    public LocalTime getHoraFim() { return horaFim; }
+    public void setHoraFim(LocalTime horaFim) { this.horaFim = horaFim; }
+    public String getObservacao() { return observacao; }
+    public void setObservacao(String observacao) { this.observacao = observacao; }
+    public StatusAgendamento getStatus() { return status; }
+    public void setStatus(StatusAgendamento status) { this.status = status; }
+    public LocalDateTime getCriadoEm() { return criadoEm; }
+    public void setCriadoEm(LocalDateTime criadoEm) { this.criadoEm = criadoEm; }
 }

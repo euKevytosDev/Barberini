@@ -47,8 +47,8 @@ public class AgendaService {
         if (data.getDayOfWeek() == DayOfWeek.SUNDAY) return List.of();
 
         Set<LocalTime> ocupados = new HashSet<>();
-        for (Agendamento a : agendamentos.findByBarbeiroIdAndDataAndStatus(
-                barbeiroId, data, StatusAgendamento.CONFIRMADO)) {
+        for (Agendamento a : agendamentos.findOcupadosDoDia(
+                barbeiroId, data, StatusAgendamento.CANCELADO)) {
             LocalTime cur = a.getHoraInicio();
             while (cur.isBefore(a.getHoraFim())) {
                 ocupados.add(cur);

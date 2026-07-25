@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.ArrayList;
@@ -78,6 +79,7 @@ public class AgendamentoService {
         a.setObservacao(req.observacao());
         a.setStatus(StatusAgendamento.CONFIRMADO);
         a.setSemPreferencia(semPreferencia);
+        a.setPrecoCobrado(servico.getPreco());
         return map(agendamentos.save(a));
     }
 
@@ -125,23 +127,49 @@ public class AgendamentoService {
         Long id = AuthSupport.atual().getId();
         LocalDate hoje = LocalDate.now();
         return agendamentos
-                .findByClienteIdAndStatusOrderByDataAscHoraInicioAsc(id, StatusAgendamento.CONFIRMADO)
+                .findDoClienteExcluindoStatus(id, StatusAgendamento.CANCELADO)
                 .stream()
                 .filter(a -> !a.getData().isBefore(hoje))
                 .map(this::map)
                 .toList();
     }
 
+    /** Agenda do dono: inclui dias passados para que atendimentos em aberto possam ser fechados. */
     @Transactional(readOnly = true)
-    public List<Map<String, Object>> todosProximos(int dias) {
+    public List<Map<String, Object>> todosProximos(int dias, int diasAtras) {
         AuthSupport.exigirDono();
         LocalDate hoje = LocalDate.now();
         return agendamentos
-                .findByDataBetweenAndStatusOrderByDataAscHoraInicioAsc(
-                        hoje, hoje.plusDays(dias), StatusAgendamento.CONFIRMADO)
+                .findPeriodoExcluindoStatus(
+                        hoje.minusDays(Math.max(0, diasAtras)),
+                        hoje.plusDays(dias),
+                        StatusAgendamento.CANCELADO)
                 .stream()
                 .map(this::map)
                 .toList();
+    }
+
+    /** Dono fecha o atendimento: finalizado (com valor opcional) ou não compareceu. */
+    @Transactional
+    public Map<String, Object> atualizarStatus(Long id, StatusAgendamento novoStatus, BigDecimal valorCobrado) {
+        AuthSupport.exigirDono();
+        if (novoStatus == StatusAgendamento.CANCELADO) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Use o cancelamento para cancelar");
+        }
+        Agendamento a = agendamentos.findByIdComDetalhes(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Agendamento não encontrado"));
+        if (a.getStatus() == StatusAgendamento.CANCELADO) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Agendamento cancelado");
+        }
+
+        a.setStatus(novoStatus);
+        if (novoStatus == StatusAgendamento.FINALIZADO && valorCobrado != null) {
+            if (valorCobrado.compareTo(BigDecimal.ZERO) < 0) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Valor inválido");
+            }
+            a.setPrecoCobrado(valorCobrado);
+        }
+        return map(agendamentos.save(a));
     }
 
     @Transactional
@@ -177,6 +205,7 @@ public class AgendamentoService {
         m.put("servicoNome", a.getServico().getNome());
         m.put("servicoPreco", a.getServico().getPreco());
         m.put("servicoDuracao", a.getServico().getDuracaoMin());
+        m.put("valorCobrado", a.getPrecoCobrado() != null ? a.getPrecoCobrado() : a.getServico().getPreco());
         return m;
     }
 }

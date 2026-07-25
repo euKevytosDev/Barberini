@@ -17,37 +17,60 @@ public interface AgendamentoRepository extends JpaRepository<Agendamento, Long> 
             join fetch a.cliente
             join fetch a.barbeiro
             join fetch a.servico
-            where a.cliente.id = :clienteId and a.status = :status
+            where a.cliente.id = :clienteId and a.status <> :statusExcluido
             order by a.data asc, a.horaInicio asc
             """)
-    List<Agendamento> findByClienteIdAndStatusOrderByDataAscHoraInicioAsc(
+    List<Agendamento> findDoClienteExcluindoStatus(
             @Param("clienteId") Long clienteId,
-            @Param("status") StatusAgendamento status);
+            @Param("statusExcluido") StatusAgendamento statusExcluido);
 
+    /** Ocupa a agenda: tudo que não foi cancelado (confirmado, finalizado ou no-show) */
     @Query("""
             select a from Agendamento a
             join fetch a.cliente
             join fetch a.barbeiro
             join fetch a.servico
-            where a.barbeiro.id = :barbeiroId and a.data = :data and a.status = :status
+            where a.barbeiro.id = :barbeiroId and a.data = :data and a.status <> :statusExcluido
             """)
-    List<Agendamento> findByBarbeiroIdAndDataAndStatus(
+    List<Agendamento> findOcupadosDoDia(
             @Param("barbeiroId") Long barbeiroId,
             @Param("data") LocalDate data,
-            @Param("status") StatusAgendamento status);
+            @Param("statusExcluido") StatusAgendamento statusExcluido);
 
     @Query("""
             select a from Agendamento a
             join fetch a.cliente
             join fetch a.barbeiro
             join fetch a.servico
-            where a.data between :inicio and :fim and a.status = :status
+            where a.data between :inicio and :fim and a.status <> :statusExcluido
             order by a.data asc, a.horaInicio asc
             """)
-    List<Agendamento> findByDataBetweenAndStatusOrderByDataAscHoraInicioAsc(
+    List<Agendamento> findPeriodoExcluindoStatus(
             @Param("inicio") LocalDate inicio,
             @Param("fim") LocalDate fim,
-            @Param("status") StatusAgendamento status);
+            @Param("statusExcluido") StatusAgendamento statusExcluido);
+
+    @Query("""
+            select a from Agendamento a
+            join fetch a.cliente
+            join fetch a.barbeiro
+            join fetch a.servico
+            where a.data between :inicio and :fim
+            order by a.data asc, a.horaInicio asc
+            """)
+    List<Agendamento> findPeriodo(
+            @Param("inicio") LocalDate inicio,
+            @Param("fim") LocalDate fim);
+
+    /** Clientes que já tinham histórico antes do período — para separar novos de recorrentes */
+    @Query("""
+            select distinct a.cliente.id from Agendamento a
+            where a.cliente.id in :clienteIds and a.data < :inicio and a.status <> :statusExcluido
+            """)
+    List<Long> clientesComHistoricoAntes(
+            @Param("clienteIds") List<Long> clienteIds,
+            @Param("inicio") LocalDate inicio,
+            @Param("statusExcluido") StatusAgendamento statusExcluido);
 
     @Query("""
             select a from Agendamento a

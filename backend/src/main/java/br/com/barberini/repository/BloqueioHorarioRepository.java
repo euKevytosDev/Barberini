@@ -18,4 +18,7 @@ public interface BloqueioHorarioRepository extends JpaRepository<BloqueioHorario
 
     @Query("select b from BloqueioHorario b where b.data = :data and b.barbeiro is null")
     List<BloqueioHorario> findByDataAndBarbeiroIsNull(@Param("data") LocalDate data);
+
+    @Query("select b from BloqueioHorario b left join fetch b.barbeiro where b.data between :inicio and :fim")
+    List<BloqueioHorario> findByDataBetween(@Param("inicio") LocalDate inicio, @Param("fim") LocalDate fim);
 }

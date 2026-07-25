@@ -366,6 +366,7 @@ window.Store = (() => {
         criadoEm: ag.criadoEm || new Date().toISOString(),
         status: ag.status || "CONFIRMADO",
         semPreferencia: !!ag.semPreferencia,
+        valorCobrado: ag.valorCobrado != null ? Number(ag.valorCobrado) : null,
       };
     },
 
@@ -426,14 +427,28 @@ window.Store = (() => {
 
     /* --- Painel do dono --- */
 
-    async donoAgendamentos(dias = 30) {
-      return window.API.get(`/api/dono/agendamentos?dias=${dias}`);
+    async donoAgendamentos(dias = 30, diasAtras = 7) {
+      return window.API.get(
+        `/api/dono/agendamentos?dias=${dias}&diasAtras=${diasAtras}`
+      );
     },
 
     async donoReatribuirBarbeiro(id, barbeiroId) {
       return window.API.put(`/api/dono/agendamentos/${id}/barbeiro`, {
         barbeiroId: Number(barbeiroId),
       });
+    },
+
+    async donoAtualizarStatus(id, status, valorCobrado) {
+      const body = { status };
+      if (valorCobrado != null && valorCobrado !== "") {
+        body.valorCobrado = Number(valorCobrado);
+      }
+      return window.API.put(`/api/dono/agendamentos/${id}/status`, body);
+    },
+
+    async donoResumo(inicio, fim) {
+      return window.API.get(`/api/dono/resumo?inicio=${inicio}&fim=${fim}`);
     },
 
     async donoBarbeiros() {

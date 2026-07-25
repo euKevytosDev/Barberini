@@ -17,7 +17,13 @@
   let calCursor = new Date();
   let dataSelecionada = new Date();
   let ultimoAgendamento = null;
-  let painelSecao = "agendamentos";
+  let painelSecao = "resumo";
+
+  /** Painel: resumo/dashboard */
+  let resumoPeriodo = "hoje";
+  let resumoInicio = null;
+  let resumoFim = null;
+  let agendaFiltro = "hoje";
 
   /** Painel: desativar horários (UI estilo agenda do cliente) */
   let bloqueioBarbeiroId = null;
@@ -199,6 +205,7 @@
         const d = U().parseISODate(ag.data);
         const dia = U().diaSemanaCurto(d);
         const fim = ag.fim || U().fimAtendimento(ag.hora, serv?.duracaoMin || 30);
+        const fechado = ag.status === "FINALIZADO" || ag.status === "NAO_COMPARECEU";
         return `
           <article class="card-agendamento" data-id="${ag.id}">
             <div class="card-agendamento-faixa"></div>
@@ -212,8 +219,9 @@
                 <div>
                   <strong>${barb?.nome || ag.barbeiroNome || "Barbeiro"}</strong>
                   <p>${serv?.nome || ag.servicoNome || "Serviço"}</p>
+                  ${fechado ? `<span class="badge-status ${ag.status.toLowerCase()}">${ag.status === "FINALIZADO" ? "Atendido" : "Não compareceu"}</span>` : ""}
                 </div>
-                <button type="button" class="btn-menu-ag" data-id="${ag.id}" aria-label="Opções">⋮</button>
+                ${fechado ? "" : `<button type="button" class="btn-menu-ag" data-id="${ag.id}" aria-label="Opções">⋮</button>`}
               </div>
             </div>
           </article>`;
@@ -761,6 +769,7 @@
 
   function renderPainel() {
     renderPainelNav();
+    if (painelSecao === "resumo") renderPainelResumo();
     if (painelSecao === "agendamentos") renderPainelAgendamentos();
     if (painelSecao === "barbeiros") renderPainelBarbeiros();
     if (painelSecao === "servicos") renderPainelServicos();
@@ -773,64 +782,340 @@
     );
   }
 
+  /* ---------- painel: resumo / dashboard ---------- */
+
+  const brl = (v) =>
+    Number(v || 0).toLocaleString("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+    });
+
+  function intervaloDoPeriodo() {
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+    const iso = (d) => U().toISODate(d);
+
+    if (resumoPeriodo === "semana") {
+      const ini = new Date(hoje);
+      const diaSemana = (ini.getDay() + 6) % 7; // segunda = 0
+      ini.setDate(ini.getDate() - diaSemana);
+      const fim = new Date(ini);
+      fim.setDate(fim.getDate() + 6);
+      return { inicio: iso(ini), fim: iso(fim), rotulo: "Esta semana" };
+    }
+    if (resumoPeriodo === "mes") {
+      const ini = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+      const fim = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0);
+      return { inicio: iso(ini), fim: iso(fim), rotulo: "Este mês" };
+    }
+    if (resumoPeriodo === "custom") {
+      const ini = resumoInicio || iso(hoje);
+      const fim = resumoFim || ini;
+      return { inicio: ini, fim, rotulo: "Período escolhido" };
+    }
+    return { inicio: iso(hoje), fim: iso(hoje), rotulo: "Hoje" };
+  }
+
+  function renderPainelResumo() {
+    const box = $("#painel-conteudo");
+    const { inicio, fim } = intervaloDoPeriodo();
+    const btn = (id, txt) =>
+      `<button type="button" class="chip-periodo ${resumoPeriodo === id ? "ativo" : ""}" data-periodo="${id}">${txt}</button>`;
+
+    box.innerHTML = `
+      <div class="resumo-filtros">
+        ${btn("hoje", "Hoje")}
+        ${btn("semana", "Semana")}
+        ${btn("mes", "Mês")}
+        ${btn("custom", "Personalizado")}
+      </div>
+      <div class="resumo-datas ${resumoPeriodo === "custom" ? "" : "oculto"}">
+        <label>De<input type="date" id="resumo-de" value="${inicio}" /></label>
+        <label>Até<input type="date" id="resumo-ate" value="${fim}" /></label>
+        <button type="button" id="btn-resumo-aplicar">Aplicar</button>
+      </div>
+      <div id="resumo-dados"><p class="carregando-slots">Carregando…</p></div>`;
+
+    $$(".chip-periodo", box).forEach((b) => {
+      b.addEventListener("click", () => {
+        resumoPeriodo = b.dataset.periodo;
+        renderPainelResumo();
+      });
+    });
+
+    $("#btn-resumo-aplicar", box)?.addEventListener("click", () => {
+      const de = $("#resumo-de", box)?.value;
+      const ate = $("#resumo-ate", box)?.value;
+      if (!de || !ate) return toast("Escolha as duas datas");
+      if (ate < de) return toast("A data final não pode ser antes da inicial");
+      resumoInicio = de;
+      resumoFim = ate;
+      carregarResumo();
+    });
+
+    carregarResumo();
+  }
+
+  async function carregarResumo() {
+    const alvo = $("#resumo-dados");
+    if (!alvo) return;
+    const { inicio, fim, rotulo } = intervaloDoPeriodo();
+    try {
+      const r = await Store.donoResumo(inicio, fim);
+      alvo.innerHTML = htmlResumo(r, rotulo);
+    } catch (e) {
+      alvo.innerHTML = `<p class="lista-vazia erro">${e.message || "Erro ao carregar resumo"}</p>`;
+    }
+  }
+
+  function htmlResumo(r, rotulo) {
+    const periodoTxt =
+      r.inicio === r.fim
+        ? U().formatarDataBR(r.inicio)
+        : `${U().formatarDataBR(r.inicio)} — ${U().formatarDataBR(r.fim)}`;
+
+    return `
+      <p class="resumo-periodo">${rotulo} · ${periodoTxt}</p>
+
+      <div class="kpi-grid">
+        <article class="kpi kpi-destaque">
+          <span class="kpi-rot">Faturamento realizado</span>
+          <strong class="kpi-val">${brl(r.realizado.faturamento)}</strong>
+          <small>${r.realizado.atendimentos} atendimento(s)</small>
+        </article>
+        <article class="kpi">
+          <span class="kpi-rot">Previsto no período</span>
+          <strong class="kpi-val">${brl(r.previsto.faturamento)}</strong>
+          <small>${r.previsto.atendimentos} agendado(s)</small>
+        </article>
+        <article class="kpi">
+          <span class="kpi-rot">Ticket médio</span>
+          <strong class="kpi-val">${brl(r.realizado.ticketMedio)}</strong>
+          <small>por atendimento</small>
+        </article>
+        <article class="kpi">
+          <span class="kpi-rot">Ocupação da agenda</span>
+          <strong class="kpi-val">${r.ocupacao}%</strong>
+          <small>${r.slotsOcupados} de ${r.slotsTotais} horários</small>
+        </article>
+        <article class="kpi kpi-alerta">
+          <span class="kpi-rot">Não compareceu</span>
+          <strong class="kpi-val">${r.naoCompareceu.atendimentos}</strong>
+          <small>${brl(r.naoCompareceu.valorPerdido)} perdidos · ${r.taxaNoShow}%</small>
+        </article>
+        <article class="kpi">
+          <span class="kpi-rot">Clientes atendidos</span>
+          <strong class="kpi-val">${r.clientes.atendidos}</strong>
+          <small>${r.clientes.novos} novo(s) · ${r.clientes.recorrentes} recorrente(s)</small>
+        </article>
+      </div>
+
+      ${blocoBarbeiros(r.porBarbeiro)}
+      ${blocoServicos(r.porServico)}
+      ${blocoSerie(r.serie)}
+      ${r.cancelados ? `<p class="resumo-nota">${r.cancelados} agendamento(s) cancelado(s) no período.</p>` : ""}
+      <p class="resumo-nota">Atendimentos que já passaram e não foram fechados contam como finalizados.</p>`;
+  }
+
+  function blocoBarbeiros(lista) {
+    if (!lista || !lista.length) {
+      return `<h3 class="resumo-titulo">Por profissional</h3><p class="lista-vazia">Nenhum profissional ativo</p>`;
+    }
+    const teto = Math.max(...lista.map((b) => Number(b.faturamento) || 0), 1);
+    const linhas = lista
+      .map((b) => {
+        const pct = Math.round(((Number(b.faturamento) || 0) / teto) * 100);
+        return `
+        <article class="card-barbeiro-perf">
+          <div class="avatar" style="background:${b.cor}">${b.iniciais}</div>
+          <div class="perf-info">
+            <div class="perf-topo">
+              <strong>${b.nome}</strong>
+              <span class="perf-valor">${brl(b.faturamento)}</span>
+            </div>
+            <div class="perf-barra"><i style="width:${pct}%;background:${b.cor}"></i></div>
+            <small>${b.atendimentos} atend. · ticket ${brl(b.ticketMedio)} · ocupação ${b.ocupacao}%${
+              b.naoCompareceu ? ` · ${b.naoCompareceu} falta(s)` : ""
+            }</small>
+          </div>
+        </article>`;
+      })
+      .join("");
+    return `<h3 class="resumo-titulo">Por profissional</h3>${linhas}`;
+  }
+
+  function blocoServicos(lista) {
+    if (!lista || !lista.length) return "";
+    const linhas = lista
+      .slice(0, 6)
+      .map(
+        (s) => `
+        <li class="linha-servico">
+          <span>${s.nome}</span>
+          <span class="qtd">${s.quantidade}x</span>
+          <strong>${brl(s.faturamento)}</strong>
+        </li>`
+      )
+      .join("");
+    return `<h3 class="resumo-titulo">Serviços mais vendidos</h3><ul class="lista-servicos-resumo">${linhas}</ul>`;
+  }
+
+  function blocoSerie(serie) {
+    if (!serie || serie.length < 2) return "";
+    const teto = Math.max(...serie.map((p) => Number(p.faturamento) || 0), 1);
+    const barras = serie
+      .map((p) => {
+        const v = Number(p.faturamento) || 0;
+        const alt = Math.max(2, Math.round((v / teto) * 100));
+        const rot = p.chave.length === 7 ? p.chave.substring(5) : p.chave.substring(8);
+        return `<div class="serie-col" title="${U().formatarDataBR(p.chave.length === 7 ? p.chave + "-01" : p.chave)}: ${brl(v)}">
+          <i style="height:${alt}%"></i><span>${rot}</span>
+        </div>`;
+      })
+      .join("");
+    return `<h3 class="resumo-titulo">Faturamento no período</h3><div class="serie-grafico">${barras}</div>`;
+  }
+
+  const STATUS_ROTULO = {
+    CONFIRMADO: "Confirmado",
+    FINALIZADO: "Finalizado",
+    NAO_COMPARECEU: "Não compareceu",
+  };
+
+  function jaPassou(ag) {
+    const fim = ag.fim || ag.hora;
+    return new Date(`${ag.data}T${fim}:00`) < new Date();
+  }
+
+  function filtrarAgenda(lista) {
+    const hoje = U().toISODate(new Date());
+    if (agendaFiltro === "hoje") return lista.filter((a) => a.data === hoje);
+    if (agendaFiltro === "pendentes") {
+      return lista.filter((a) => a.status === "CONFIRMADO" && jaPassou(a));
+    }
+    if (agendaFiltro === "proximos") {
+      return lista.filter((a) => a.data > hoje || (a.data === hoje && !jaPassou(a)));
+    }
+    return lista;
+  }
+
   async function renderPainelAgendamentos() {
     const box = $("#painel-conteudo");
     box.innerHTML = `<p class="carregando-slots">Carregando…</p>`;
     try {
-      const lista = await Store.donoAgendamentos(30);
-      if (!lista.length) {
-        box.innerHTML = `<p class="lista-vazia">Nenhum agendamento nos próximos 30 dias</p>`;
-        return;
-      }
+      const todos = await Store.donoAgendamentos(30, 7);
+      const pendentes = todos.filter((a) => a.status === "CONFIRMADO" && jaPassou(a)).length;
+      const lista = filtrarAgenda(todos);
       const barbeiros = Store.getBarbeiros();
-      box.innerHTML = lista
-        .map((ag) => {
-          const opcoes = barbeiros
-            .map(
-              (b) =>
-                `<option value="${b.id}" ${Number(b.id) === Number(ag.barbeiroId) ? "selected" : ""}>${b.nome}</option>`
-            )
-            .join("");
-          return `
-        <article class="card-painel-ag ${ag.semPreferencia ? "sem-pref" : ""}">
-          <div class="card-painel-ag-topo">
-            <strong>${U().formatarDataBR(ag.data)} · ${ag.hora}</strong>
-            <span>${ag.clienteNome || "Cliente"}</span>
-          </div>
-          <p>${ag.servicoNome} — ${ag.barbeiroNome}</p>
-          ${ag.semPreferencia ? `<span class="tag-sem-pref">Encaixe · sem preferência</span>` : ""}
-          ${ag.observacao ? `<small>Obs: ${ag.observacao}</small>` : ""}
-          <div class="reatribuir">
-            <label>Profissional</label>
-            <select class="sel-barbeiro" data-id="${ag.id}">${opcoes}</select>
-            <button type="button" class="btn-mover" data-id="${ag.id}">Mover</button>
-          </div>
-        </article>`;
-        })
-        .join("");
+
+      const chip = (id, txt, extra = "") =>
+        `<button type="button" class="chip-periodo ${agendaFiltro === id ? "ativo" : ""}" data-filtro="${id}">${txt}${extra}</button>`;
+
+      const cards = lista.length
+        ? lista.map((ag) => cardAgendamentoDono(ag, barbeiros)).join("")
+        : `<p class="lista-vazia">Nenhum agendamento neste filtro</p>`;
+
+      box.innerHTML = `
+        <div class="resumo-filtros">
+          ${chip("hoje", "Hoje")}
+          ${chip("pendentes", "A fechar", pendentes ? ` <b>${pendentes}</b>` : "")}
+          ${chip("proximos", "Próximos")}
+          ${chip("todos", "Todos")}
+        </div>
+        ${cards}`;
+
+      $$(".chip-periodo", box).forEach((b) => {
+        b.addEventListener("click", () => {
+          agendaFiltro = b.dataset.filtro;
+          renderPainelAgendamentos();
+        });
+      });
 
       $$(".btn-mover", box).forEach((btn) => {
         btn.addEventListener("click", async () => {
           const id = btn.dataset.id;
           const sel = box.querySelector(`.sel-barbeiro[data-id="${id}"]`);
           if (!sel) return;
-          btn.disabled = true;
-          const original = btn.textContent;
-          btn.textContent = "Movendo…";
-          try {
-            await Store.donoReatribuirBarbeiro(id, sel.value);
-            toast("Profissional atualizado");
-            renderPainelAgendamentos();
-          } catch (e) {
-            toast(e.message || "Erro ao mover");
-            btn.disabled = false;
-            btn.textContent = original;
-          }
+          await acaoCard(btn, "Movendo…", () =>
+            Store.donoReatribuirBarbeiro(id, sel.value)
+          );
+        });
+      });
+
+      $$(".btn-status", box).forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const { id, status } = btn.dataset;
+          const campo = box.querySelector(`.valor-cobrado[data-id="${id}"]`);
+          const valor = status === "FINALIZADO" ? campo?.value : null;
+          await acaoCard(btn, "Salvando…", () =>
+            Store.donoAtualizarStatus(id, status, valor)
+          );
         });
       });
     } catch (e) {
       box.innerHTML = `<p class="lista-vazia erro">${e.message || "Erro ao carregar"}</p>`;
     }
+  }
+
+  async function acaoCard(btn, textoCarregando, fn) {
+    const original = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = textoCarregando;
+    try {
+      await fn();
+      renderPainelAgendamentos();
+    } catch (e) {
+      toast(e.message || "Não foi possível salvar");
+      btn.disabled = false;
+      btn.textContent = original;
+    }
+  }
+
+  function cardAgendamentoDono(ag, barbeiros) {
+    const opcoes = barbeiros
+      .map(
+        (b) =>
+          `<option value="${b.id}" ${Number(b.id) === Number(ag.barbeiroId) ? "selected" : ""}>${b.nome}</option>`
+      )
+      .join("");
+    const valor = ag.valorCobrado != null ? ag.valorCobrado : ag.servicoPreco;
+    const aberto = ag.status === "CONFIRMADO";
+    const emAberto = aberto && jaPassou(ag);
+
+    const fechamento = aberto
+      ? `<div class="fechamento ${emAberto ? "urgente" : ""}">
+          <label>Valor
+            <input type="number" class="valor-cobrado" data-id="${ag.id}"
+              min="0" step="0.01" value="${valor ?? ""}" />
+          </label>
+          <button type="button" class="btn-status ok" data-id="${ag.id}" data-status="FINALIZADO">✓ Finalizar</button>
+          <button type="button" class="btn-status falta" data-id="${ag.id}" data-status="NAO_COMPARECEU">✗ Não veio</button>
+        </div>`
+      : `<div class="fechamento">
+          <span class="valor-final">${brl(valor)}</span>
+          <button type="button" class="btn-status reabrir" data-id="${ag.id}" data-status="CONFIRMADO">Reabrir</button>
+        </div>`;
+
+    return `
+      <article class="card-painel-ag ${ag.semPreferencia ? "sem-pref" : ""} st-${ag.status.toLowerCase()}">
+        <div class="card-painel-ag-topo">
+          <strong>${U().formatarDataBR(ag.data)} · ${ag.hora}</strong>
+          <span>${ag.clienteNome || "Cliente"}</span>
+        </div>
+        <p>${ag.servicoNome} — ${ag.barbeiroNome}</p>
+        <div class="tags-ag">
+          <span class="badge-status ${ag.status.toLowerCase()}">${STATUS_ROTULO[ag.status] || ag.status}</span>
+          ${ag.semPreferencia ? `<span class="tag-sem-pref">Encaixe · sem preferência</span>` : ""}
+          ${emAberto ? `<span class="tag-pendente">Aguardando fechamento</span>` : ""}
+        </div>
+        ${ag.observacao ? `<small>Obs: ${ag.observacao}</small>` : ""}
+        ${fechamento}
+        <div class="reatribuir">
+          <label>Profissional</label>
+          <select class="sel-barbeiro" data-id="${ag.id}">${opcoes}</select>
+          <button type="button" class="btn-mover" data-id="${ag.id}">Mover</button>
+        </div>
+      </article>`;
   }
 
   async function renderPainelBarbeiros() {
@@ -1134,7 +1419,7 @@
     try {
       const [bloqueios, agendaDono] = await Promise.all([
         Store.donoBloqueios(dataIso),
-        Store.donoAgendamentos(60).catch(() => []),
+        Store.donoAgendamentos(60, 0).catch(() => []),
       ]);
       bloqueiosDoDia = bloqueios.filter(
         (bl) =>

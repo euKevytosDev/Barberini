@@ -1,7 +1,9 @@
 package br.com.barberini.model;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.ColumnDefault;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -38,11 +40,17 @@ public class Agendamento {
     @Column(length = 200)
     private String observacao;
 
+    /** Preço congelado no momento do agendamento — histórico não muda se o serviço mudar de preço */
+    @Column(precision = 10, scale = 2)
+    private BigDecimal precoCobrado;
+
+    // varchar explícito: evita ENUM/CHECK gerado pelo dialeto, que o ddl-auto nunca atualiza
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
+    @Column(nullable = false, length = 20, columnDefinition = "varchar(20)")
     private StatusAgendamento status = StatusAgendamento.CONFIRMADO;
 
     /** true quando o cliente não escolheu profissional (encaixe automático, dono pode remanejar) */
+    @ColumnDefault("false")
     @Column(nullable = false)
     private boolean semPreferencia = false;
 
@@ -67,6 +75,8 @@ public class Agendamento {
     public void setHoraFim(LocalTime horaFim) { this.horaFim = horaFim; }
     public String getObservacao() { return observacao; }
     public void setObservacao(String observacao) { this.observacao = observacao; }
+    public BigDecimal getPrecoCobrado() { return precoCobrado; }
+    public void setPrecoCobrado(BigDecimal precoCobrado) { this.precoCobrado = precoCobrado; }
     public StatusAgendamento getStatus() { return status; }
     public void setStatus(StatusAgendamento status) { this.status = status; }
     public boolean isSemPreferencia() { return semPreferencia; }

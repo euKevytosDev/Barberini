@@ -127,7 +127,27 @@ window.Store = (() => {
     }
   }
 
-  function slotsFallback(barbeiroId, dataIso, duracaoMin) {
+  /** Invalida cache de slots (ex.: após o dono bloquear/liberar horário). */
+  function limparSlotsCache(barbeiroId, data) {
+    try {
+      if (barbeiroId == null && !data) {
+        localStorage.removeItem(KEY_SLOTS);
+        return;
+      }
+      const all = JSON.parse(localStorage.getItem(KEY_SLOTS) || "{}");
+      Object.keys(all).forEach((k) => {
+        const [bid, d] = k.split("|");
+        if (barbeiroId != null && Number(bid) !== Number(barbeiroId)) return;
+        if (data && d !== data) return;
+        delete all[k];
+      });
+      localStorage.setItem(KEY_SLOTS, JSON.stringify(all));
+    } catch {
+      /* ignore */
+    }
+  }
+
+  function slotsFallback(barbeiroId, dataIso, duracaoMin, bloqueios = []) {
     const U = window.BARBERINI.utils;
     const B = window.BARBERINI;
     const todos = U.gerarSlots();
@@ -138,6 +158,11 @@ window.Store = (() => {
         )
         .map((a) => (a.hora || "").substring(0, 5))
     );
+    (bloqueios || []).forEach((bl) => {
+      const doBarbeiro =
+        bl.barbeiroId == null || Number(bl.barbeiroId) === Number(barbeiroId);
+      if (doBarbeiro) ocupados.add(String(bl.hora || "").substring(0, 5));
+    });
     const hojeIso = U.toISODate(new Date());
     const agoraMin =
       dataIso === hojeIso
@@ -302,17 +327,25 @@ window.Store = (() => {
           data,
         });
         if (servicoId) q.set("servicoId", String(servicoId));
+        // bust cache do browser/proxy — bloqueios mudam o resultado
+        q.set("_", String(Date.now()));
         const res = await window.API.get(`/api/public/slots?${q}`);
         const slots = (res.slots || []).map((h) => String(h).substring(0, 5));
         salvarSlotsCache(key, slots);
         return slots;
       } catch (e) {
+        // Cache só se for bem recente (evita horário bloqueado continuar aparecendo)
         const cached = lerSlotsCache(key);
-        if (cached && cached.slots) return cached.slots;
-        if (e.offline || !window.API.token()) {
-          return slotsFallback(barbeiroId, data, duracaoMin);
+        if (cached && cached.slots && Date.now() - (cached.em || 0) < 10000) {
+          return cached.slots;
         }
-        throw e;
+        let bloqueios = [];
+        try {
+          bloqueios = await window.API.get(`/api/public/bloqueios?data=${encodeURIComponent(data)}`);
+        } catch {
+          /* offline total */
+        }
+        return slotsFallback(barbeiroId, data, duracaoMin, bloqueios);
       }
     },
 
@@ -432,11 +465,15 @@ window.Store = (() => {
     },
 
     async donoCriarBloqueio(body) {
-      return window.API.post("/api/dono/bloqueios", body);
+      const res = await window.API.post("/api/dono/bloqueios", body);
+      limparSlotsCache(body.barbeiroId, body.data);
+      return res;
     },
 
-    async donoRemoverBloqueio(id) {
-      return window.API.del(`/api/dono/bloqueios/${id}`);
+    async donoRemoverBloqueio(id, meta = {}) {
+      const res = await window.API.del(`/api/dono/bloqueios/${id}`);
+      limparSlotsCache(meta.barbeiroId, meta.data);
+      return res;
     },
   };
 })();

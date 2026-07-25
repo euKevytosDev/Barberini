@@ -1189,7 +1189,10 @@
     const dataIso = U().toISODate(bloqueioDataSel);
     try {
       if (bloqueioId) {
-        await Store.donoRemoverBloqueio(bloqueioId);
+        await Store.donoRemoverBloqueio(bloqueioId, {
+          barbeiroId: Number(bloqueioBarbeiroId),
+          data: dataIso,
+        });
         toast(`${hora} liberado`);
       } else {
         await Store.donoCriarBloqueio({
